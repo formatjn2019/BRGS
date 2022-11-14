@@ -17,14 +17,14 @@ import (
 
 const INPUT_DIR, OUTPUT_DIR, TEMP_DIR = "D:\\testDir\\input", "D:\\testDir\\output", "D:\\testDir\\temp"
 
-//文件树监控测试
+// 文件树监控测试
 func TestFsTree(t *testing.T) {
 	fmt.Println(strings.Repeat("+", 200))
 	createFsTreeRoot()
 	<-make(chan struct{})
 }
 
-//文件树方法测试
+// 文件树方法测试
 func TestFsTreeBackup(t *testing.T) {
 	fmt.Println(strings.Repeat("*", 200))
 	ftr := createFsTreeRoot()
@@ -32,7 +32,7 @@ func TestFsTreeBackup(t *testing.T) {
 	syncTestBackup(ftr, []string{"rm", filepath.Join(INPUT_DIR, "test.txt")}, []string{"cd", filepath.Join(INPUT_DIR, "dir1")}, []string{"rm", filepath.Join(INPUT_DIR, "dir1")})
 }
 
-//文件树方法测试
+// 文件树方法测试
 func TestFsTreeRecoverBackup(t *testing.T) {
 	fmt.Println(strings.Repeat("*", 200))
 	ftr := createFsTreeRoot()
@@ -40,7 +40,7 @@ func TestFsTreeRecoverBackup(t *testing.T) {
 	syncTestRecover(ftr, []string{"rm", filepath.Join(INPUT_DIR, "test.txt")}, []string{"cd", filepath.Join(INPUT_DIR, "dir1")}, []string{"rm", filepath.Join(INPUT_DIR, "dir1")})
 }
 
-//文件树方法测试
+// 文件树方法测试
 func TestFsTreeRandomBackup(t *testing.T) {
 	f, _ := os.OpenFile("log.log", os.O_CREATE|os.O_WRONLY, 0644)
 	log.SetOutput(f)
@@ -53,7 +53,7 @@ func TestFsTreeRandomBackup(t *testing.T) {
 			ftr.Show(true)
 		}
 		fmt.Printf("tools.CompareDirs(INPUT_DIR, OUTPUT_DIR): %v\n", tools.CompareDirs(INPUT_DIR, OUTPUT_DIR))
-		if 0 > 0 {
+		if rand.Intn(2) > 0 {
 			fmt.Printf("ftr.BackupFiles(): %v\n", ftr.BackupFiles())
 		} else {
 			fmt.Printf("ftr.RecoverFiles(): %v\n", ftr.RecoverFiles())
@@ -77,10 +77,11 @@ func TestOs(t *testing.T) {
 }
 
 func TestOtherMethods(t *testing.T) {
-	path := "D:\\testDir\\input\\tdr"
-	fmt.Println(strings.Index(path, "D"))
-	println("232")
-	fmt.Printf("tools.CompareDirs(INPUT_DIR, OUTPUT_DIR): %v\n", tools.CompareDirs(INPUT_DIR, OUTPUT_DIR))
+	// path := "D:\\testDir\\input\\tdr"
+	// fmt.Println(strings.Index(path, "D"))
+	// fmt.Printf("tools.CompareDirs(INPUT_DIR, OUTPUT_DIR): %v\n", tools.CompareDirs(INPUT_DIR, OUTPUT_DIR))
+	println(3)
+	tools.CompareDirs(INPUT_DIR, TEMP_DIR)
 }
 
 func TestFsNotify(t *testing.T) {

@@ -12,6 +12,26 @@ import (
 	"github.com/fsnotify/fsnotify"
 )
 
+func CreateFsTreeRoot(inputdir, outputdir string) *FSTreeRoot {
+	ftn, err := InitScanFolder(inputdir)
+	if err != nil {
+		log.Println("读取文件树错误")
+		log.Println("error: ", err)
+		return nil
+	}
+	err = ftn.CreateTargetDir(outputdir)
+	if err != nil {
+		log.Println("创建输出文件夹错误")
+		log.Println("error: ", err)
+		return nil
+	}
+	b := ftn.BackupFiles()
+	ftn.WatchDirs()
+	ftn.Watch()
+	fmt.Println(b)
+	return ftn
+}
+
 // 树的根
 type FSTreeRoot struct {
 	source  string
@@ -169,7 +189,9 @@ func (root *FSTreeRoot) Watch() {
 						node.Delete()
 						if node.isDir {
 							err := root.watcher.Remove(event.Name)
-							fmt.Println(err)
+							fmt.Println("删除监控失败", err)
+							fmt.Println(node)
+							fmt.Println(len(node.subs))
 						}
 						fmt.Println("删除测试成功")
 					}
@@ -192,7 +214,17 @@ func (root *FSTreeRoot) Watch() {
 							root.WatchDirs()
 						}
 					} else if event.Op == fsnotify.Write && ok {
-						node.Update()
+						//状态校验
+						if _, err := os.Stat(event.Name); err == nil {
+							node.Update()
+						} else {
+							node.Delete()
+						}
+
+					} else {
+						fmt.Println("其它状态")
+						fmt.Println(event)
+						fmt.Println(event.Op)
 					}
 				}
 			case err, ok := <-root.watcher.Errors:
@@ -242,7 +274,7 @@ func (root *FSTreeRoot) cleanup() {
 	}
 }
 
-//获取逆向同步的文件夹
+// 获取逆向同步的文件夹
 func (root *FSTreeRoot) getReverseSyncFiles() (map[string]bool, map[string]bool) {
 	appendDic, deleteDic := map[string]bool{}, map[string]bool{}
 	//清理无效节点
@@ -265,7 +297,7 @@ func (root *FSTreeRoot) getReverseSyncFiles() (map[string]bool, map[string]bool)
 	return appendDic, deleteDic
 }
 
-//获取同步的文件夹
+// 获取同步的文件夹
 func (root *FSTreeRoot) getSyncFiles() (map[string]bool, map[string]bool) {
 	appendDic, deleteDic := map[string]bool{}, map[string]bool{}
 	//清理无效节点
