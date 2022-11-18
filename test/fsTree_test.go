@@ -1,7 +1,8 @@
 package test
 
 import (
-	"BRGS/tools"
+	"BRGS/models"
+	"BRGS/pkg/util"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -52,13 +53,13 @@ func TestFsTreeRandomBackup(t *testing.T) {
 			randomOperation(INPUT_DIR)
 			ftr.Show(true)
 		}
-		fmt.Printf("tools.CompareDirs(INPUT_DIR, OUTPUT_DIR): %v\n", tools.CompareDirs(INPUT_DIR, OUTPUT_DIR))
+		fmt.Printf("models.CompareDirs(INPUT_DIR, OUTPUT_DIR): %v\n", util.CompareDirs(INPUT_DIR, OUTPUT_DIR))
 		if rand.Intn(2) > 0 {
 			fmt.Printf("ftr.BackupFiles(): %v\n", ftr.BackupFiles())
 		} else {
 			fmt.Printf("ftr.RecoverFiles(): %v\n", ftr.RecoverFiles())
 		}
-		fmt.Printf("tools.CompareDirs(INPUT_DIR, OUTPUT_DIR): %v\n", tools.CompareDirs(INPUT_DIR, OUTPUT_DIR))
+		fmt.Printf("models.CompareDirs(INPUT_DIR, OUTPUT_DIR): %v\n", util.CompareDirs(INPUT_DIR, OUTPUT_DIR))
 	}
 }
 func TestOs(t *testing.T) {
@@ -79,9 +80,9 @@ func TestOs(t *testing.T) {
 func TestOtherMethods(t *testing.T) {
 	// path := "D:\\testDir\\input\\tdr"
 	// fmt.Println(strings.Index(path, "D"))
-	// fmt.Printf("tools.CompareDirs(INPUT_DIR, OUTPUT_DIR): %v\n", tools.CompareDirs(INPUT_DIR, OUTPUT_DIR))
+	// fmt.Printf("util.CompareDirs(INPUT_DIR, OUTPUT_DIR): %v\n", util.CompareDirs(INPUT_DIR, OUTPUT_DIR))
 	println(3)
-	tools.CompareDirs(INPUT_DIR, TEMP_DIR)
+	util.CompareDirs(INPUT_DIR, TEMP_DIR)
 }
 
 func TestFsNotify(t *testing.T) {
@@ -134,8 +135,8 @@ func OsOperation(operation string, path ...string) {
 	time.Sleep(1e9)
 }
 
-func createFsTreeRoot() *tools.FSTreeRoot {
-	ftn, err := tools.InitScanFolder(INPUT_DIR)
+func createFsTreeRoot() *models.FSTreeRoot {
+	ftn, err := models.InitScanFolder(INPUT_DIR)
 	if err != nil {
 		log.Println("读取文件树错误")
 		log.Println("error: ", err)
@@ -216,10 +217,10 @@ func randomOperation(inputDir string) {
 	}
 }
 
-func showTrees(root *tools.FSTreeRoot) {
+func showTrees(root *models.FSTreeRoot) {
 	rootNode := root.GetNode("")
-	var showNode func(int, *tools.FsTreeNode)
-	showNode = func(depth int, node *tools.FsTreeNode) {
+	var showNode func(int, *models.FsTreeNode)
+	showNode = func(depth int, node *models.FsTreeNode) {
 		fmt.Printf("%d%100s%v", depth, strings.Repeat(" ", depth), node)
 		for _, ftn := range node.Subs() {
 			showNode(depth+1, ftn)
@@ -228,30 +229,30 @@ func showTrees(root *tools.FSTreeRoot) {
 	showNode(0, rootNode)
 }
 
-func syncTestBackup(ftn *tools.FSTreeRoot, opers ...[]string) {
+func syncTestBackup(ftn *models.FSTreeRoot, opers ...[]string) {
 	println(strings.Repeat("+", 200))
-	fmt.Printf("更改前文件夹同步状态%t\n", tools.CompareDirs(INPUT_DIR, OUTPUT_DIR))
+	fmt.Printf("更改前文件夹同步状态%t\n", util.CompareDirs(INPUT_DIR, OUTPUT_DIR))
 	for _, oper := range opers {
 		OsOperation(oper[0], oper[1:]...)
 	}
-	fmt.Printf("更改后文件夹同步状态%t\n", tools.CompareDirs(INPUT_DIR, OUTPUT_DIR))
+	fmt.Printf("更改后文件夹同步状态%t\n", util.CompareDirs(INPUT_DIR, OUTPUT_DIR))
 	ftn.Show(false)
 	ftn.BackupFiles()
 	ftn.Show(false)
-	fmt.Printf("同步后文件夹同步状态%t\n", tools.CompareDirs(INPUT_DIR, OUTPUT_DIR))
+	fmt.Printf("同步后文件夹同步状态%t\n", util.CompareDirs(INPUT_DIR, OUTPUT_DIR))
 	println(strings.Repeat("-", 200))
 }
 
-func syncTestRecover(ftn *tools.FSTreeRoot, opers ...[]string) {
+func syncTestRecover(ftn *models.FSTreeRoot, opers ...[]string) {
 	println(strings.Repeat("+", 200))
-	fmt.Printf("更改前文件夹同步状态%t\n", tools.CompareDirs(INPUT_DIR, OUTPUT_DIR))
+	fmt.Printf("更改前文件夹同步状态%t\n", util.CompareDirs(INPUT_DIR, OUTPUT_DIR))
 	for _, oper := range opers {
 		OsOperation(oper[0], oper[1:]...)
 	}
-	fmt.Printf("更改后文件夹同步状态%t\n", tools.CompareDirs(INPUT_DIR, OUTPUT_DIR))
+	fmt.Printf("更改后文件夹同步状态%t\n", util.CompareDirs(INPUT_DIR, OUTPUT_DIR))
 	ftn.Show(false)
 	ftn.RecoverFiles()
 	ftn.Show(false)
-	fmt.Printf("同步后文件夹同步状态%t\n", tools.CompareDirs(INPUT_DIR, OUTPUT_DIR))
+	fmt.Printf("同步后文件夹同步状态%t\n", util.CompareDirs(INPUT_DIR, OUTPUT_DIR))
 	println(strings.Repeat("-", 200))
 }

@@ -1,6 +1,7 @@
-package tools
+package models
 
 import (
+	"BRGS/pkg/util"
 	"fmt"
 	"io/fs"
 	"io/ioutil"
@@ -65,7 +66,7 @@ func (root *FSTreeRoot) BackupFiles() bool {
 	log.Printf("appendDic: %v\n", appendDic)
 	log.Printf("deleteDic: %v\n", deleteDic)
 	//同步完成
-	if synced, err := SyncFile(root.source, root.target, appendDic, deleteDic); err == nil {
+	if synced, err := util.SyncFile(root.source, root.target, appendDic, deleteDic); err == nil {
 		log.Println("同步成功", err)
 		for key := range synced {
 			root.dic[key].Sync()
@@ -124,7 +125,7 @@ func (root *FSTreeRoot) RecoverFiles() bool {
 	log.Printf("appendDic: %v\n", appendDic)
 	log.Printf("deleteDic: %v\n", deleteDic)
 	//同步完成
-	if synced, err := SyncFile(root.target, root.source, appendDic, deleteDic); err == nil {
+	if synced, err := util.SyncFile(root.target, root.source, appendDic, deleteDic); err == nil {
 		for key := range synced {
 			root.dic[key].ReverseSync()
 		}

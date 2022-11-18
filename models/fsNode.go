@@ -1,4 +1,4 @@
-package tools
+package models
 
 import (
 	"fmt"
@@ -47,7 +47,7 @@ func (ftn *FsTreeNode) ReverseSync() {
 	ftn.isDir = ftn.exist
 }
 
-//输出
+// 输出
 func (ftn *FsTreeNode) Subs() map[string]*FsTreeNode {
 	return ftn.subs
 }

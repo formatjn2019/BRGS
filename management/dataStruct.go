@@ -1,6 +1,6 @@
 package management
 
-import "BRGS/tools"
+import "BRGS/models"
 
 var EXCEL_HEAD_ORDER = []string{
 	"名称",
@@ -12,7 +12,7 @@ var EXCEL_HEAD_ORDER = []string{
 }
 
 type BackupArchive struct {
-	root            tools.FSTreeRoot
+	root            models.FSTreeRoot
 	archiveDir      string
 	name            string
 	tempDir         string

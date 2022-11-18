@@ -2,7 +2,7 @@ package test
 
 import (
 	"BRGS/management"
-	"BRGS/tools"
+	"BRGS/pkg/util"
 	"fmt"
 	"os"
 	"testing"
@@ -14,12 +14,12 @@ func TestCommand(t *testing.T) {
 }
 
 func TestWalk(t *testing.T) {
-	tools.WalkDir("D:\\testDir")
+	util.WalkDir("D:\\testDir")
 }
 
 func TestWrite(t *testing.T) {
 	context := []map[string]string{{"标题1": "332", "标题2": "4422"}, {"标题1": "33", "标题2": "44"}}
-	tools.WriteCsvWithDict("config.csv", context)
+	util.WriteCsvWithDict("config.csv", context)
 }
 
 func TestReadConfig(t *testing.T) {
@@ -29,7 +29,7 @@ func TestReadConfig(t *testing.T) {
 	// 	fmt.Println(k, v)
 	// }
 	command := management.ReadConfigCommand{}
-	tools.ReadCsvAsDict("config.csv")
+	util.ReadCsvAsDict("config.csv")
 	command.Execute()
 }
 
@@ -45,8 +45,8 @@ func TestSaveConfig(t *testing.T) {
 
 func TestZip(t *testing.T) {
 	start := time.Now().UnixNano()
-	dict := tools.WalkDir("D:\\testDir\\input")
-	fmt.Printf("tools.WriteZip(D:\\testDir\\archive\\test.zip, dict): %v\n", tools.WriteZip("D:\\testDir\\archive\\test.zip", dict))
+	dict := util.WalkDir("D:\\testDir\\input")
+	fmt.Printf("tools.WriteZip(D:\\testDir\\archive\\test.zip, dict): %v\n", util.WriteZip("D:\\testDir\\archive\\test.zip", dict))
 	end := time.Now().UnixNano()
 	fmt.Println(start)
 	fmt.Println(end)

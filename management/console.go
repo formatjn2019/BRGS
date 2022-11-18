@@ -1,7 +1,8 @@
 package management
 
 import (
-	"BRGS/tools"
+	"BRGS/models"
+	"BRGS/pkg/util"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -42,7 +43,7 @@ type Command interface {
 
 type shareData struct {
 	ba        BackupArchive
-	tree      tools.FSTreeRoot
+	tree      models.FSTreeRoot
 	matchRule *regexp.Regexp
 }
 
@@ -52,7 +53,7 @@ type ReadConfigCommand struct {
 }
 
 func (r *ReadConfigCommand) Execute() bool {
-	configs, err := tools.ReadCsvAsDict("config.csv")
+	configs, err := util.ReadCsvAsDict("config.csv")
 	type Check func(string) error
 	// 核验方法生成器
 	// 非空核验
@@ -188,7 +189,7 @@ func (r *GenerateConfigDefaultCommand) Execute() bool {
 		// 自动同步间隔(分钟)
 		EXCEL_HEAD_ORDER[5]: "(应小于自动同步间隔,建议1附近,为0代表不自动备份(频繁sl使用),范围1-30,且不能大于存档间隔，建议为存档间隔一半)",
 	}}
-	tools.WriteCsvWithDict("config_default(需要改名为config才能使用).csv", defaultMarix, EXCEL_HEAD_ORDER...)
+	util.WriteCsvWithDict("config_default(需要改名为config才能使用).csv", defaultMarix, EXCEL_HEAD_ORDER...)
 	fmt.Println("写入默认配置文件成功")
 	return true
 }
@@ -243,7 +244,7 @@ func (c *CompressedArchive) Execute() bool {
 	zipPath := filepath.Join(c.ba.archiveDir, fileName)
 	fmt.Println(fileName)
 	fmt.Println(zipPath)
-	if err := tools.WriteZip(zipPath, tools.WalkDir(c.ba.tempDir)); err != nil {
+	if err := util.WriteZip(zipPath, util.WalkDir(c.ba.tempDir)); err != nil {
 		return false
 	}
 	return true
@@ -274,7 +275,7 @@ type ResetBackup struct {
 }
 
 func (r *ResetBackup) Execute() bool {
-	r.tree = *tools.CreateFsTreeRoot(r.ba.watchDir, r.ba.tempDir)
+	r.tree = *models.CreateFsTreeRoot(r.ba.watchDir, r.ba.tempDir)
 	fmt.Println("重置执行")
 	return true
 }
@@ -321,7 +322,7 @@ func (r *ResoreFileFromArchive) Execute() bool {
 			return true
 		} else {
 			if index := CommandMenu(true, archives...); index >= 0 {
-				if err := tools.RecoverFromArchive(filepath.Join(r.ba.archiveDir, archives[index]), r.ba.watchDir); err != nil {
+				if err := util.RecoverFromArchive(filepath.Join(r.ba.archiveDir, archives[index]), r.ba.watchDir); err != nil {
 					log.Printf("还原%s失败", archives[index])
 					return false
 				} else {
@@ -334,7 +335,7 @@ func (r *ResoreFileFromArchive) Execute() bool {
 	} else {
 		log.Printf("扫描压缩文件夹%s失败:\t%v\n", r.ba.archiveDir, err)
 	}
-	// tools.RecoverFromArchive("")
+	// models.RecoverFromArchive("")
 	return true
 }
 
@@ -348,7 +349,7 @@ type AutoBackupCommand struct {
 }
 
 func (r *AutoBackupCommand) Execute() bool {
-	r.tree = *tools.CreateFsTreeRoot(r.ba.watchDir, r.ba.tempDir)
+	r.tree = *models.CreateFsTreeRoot(r.ba.watchDir, r.ba.tempDir)
 	return true
 }
 
@@ -362,7 +363,7 @@ type ManualBackupCommand struct {
 }
 
 func (r *ManualBackupCommand) Execute() bool {
-	r.tree = *tools.CreateFsTreeRoot(r.ba.watchDir, r.ba.tempDir)
+	r.tree = *models.CreateFsTreeRoot(r.ba.watchDir, r.ba.tempDir)
 	r.matchRule = regexp.MustCompile(r.ba.name + "_20\\d{6}_\\d{6}\\.zip")
 	fmt.Println("手动进行操作执行")
 	return true
@@ -378,7 +379,7 @@ type ManualAndAutoBackupCommand struct {
 }
 
 func (r *ManualAndAutoBackupCommand) Execute() bool {
-	r.tree = *tools.CreateFsTreeRoot(r.ba.watchDir, r.ba.tempDir)
+	r.tree = *models.CreateFsTreeRoot(r.ba.watchDir, r.ba.tempDir)
 	r.matchRule = regexp.MustCompile(r.ba.name + "_20\\d{6}_\\d{6}\\.zip")
 	fmt.Println("双重模式执行")
 	return true
