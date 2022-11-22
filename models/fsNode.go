@@ -36,12 +36,6 @@ func (ftn *FsTreeNode) Update() {
 
 // 逆向文件同步操作
 func (ftn *FsTreeNode) ReverseSync() {
-	// // 恢复原先的依赖关系
-	// if ftn.synced {
-	// 	ftn.parent.subs[ftn.path] = ftn
-	// } else {
-	// 	ftn.Delete()
-	// }
 	ftn.isAlter = false
 	ftn.exist = ftn.synced
 	ftn.isDir = ftn.exist

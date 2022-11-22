@@ -217,6 +217,22 @@ func WriteZip(fileName string, mapDic map[string]string) error {
 	return nil
 }
 
+// 读取csv文件并翻译头
+func ReadCsvAsDictAndTranslate(filePath string, tralslateHeadDic map[string]string) (result []map[string]string, e error) {
+	originDicList, err := ReadCsvAsDict(filePath)
+	if err != nil {
+		return originDicList, err
+	}
+	for _, oriDic := range originDicList {
+		tmpDic := map[string]string{}
+		for k, v := range oriDic {
+			tmpDic[tralslateHeadDic[k]] = v
+		}
+		result = append(result, tmpDic)
+	}
+	return result, nil
+}
+
 // 读取csv文件
 func ReadCsvAsDict(filePath string) (result []map[string]string, e error) {
 	file, _ := os.OpenFile(filePath, os.O_RDONLY, 438)

@@ -12,22 +12,24 @@ import (
 	"regexp"
 	"strconv"
 	"time"
+
+	"github.com/go-ini/ini"
 )
 
 func (b *BackupArchive) GetConfigDic() map[string]string {
 	return map[string]string{
 		// "名称":         b.name,
-		EXCEL_HEAD_ORDER[0]: b.name,
+		"name": b.name,
 		// "存档目录":       b.watchDir,
-		EXCEL_HEAD_ORDER[1]: b.watchDir,
+		"watchDir": b.watchDir,
 		// "中转文件目录":     b.tempDir,
-		EXCEL_HEAD_ORDER[2]: b.tempDir,
+		"tempDir": b.tempDir,
 		// "压缩文件存储目录":   b.archiveDir,
-		EXCEL_HEAD_ORDER[3]: b.archiveDir,
+		"archiveDir": b.archiveDir,
 		// "自动存档间隔(分钟)": strconv.Itoa(b.archiveInterval),
-		EXCEL_HEAD_ORDER[4]: strconv.Itoa(b.archiveInterval / 60),
+		"archiveInterval": strconv.Itoa(b.archiveInterval / 60),
 		// "自动同步间隔(分钟)": strconv.Itoa(b.syncInterval),
-		EXCEL_HEAD_ORDER[5]: strconv.Itoa(b.syncInterval / 60),
+		"syncInterval": strconv.Itoa(b.syncInterval / 60),
 	}
 }
 
@@ -53,7 +55,8 @@ type ReadConfigCommand struct {
 }
 
 func (r *ReadConfigCommand) Execute() bool {
-	configs, err := util.ReadCsvAsDict("config.csv")
+	configs, err := util.ReadCsvAsDictAndTranslate("config.csv", util.DictReverse(EXCEL_HEAD_TRANSLATE_DIC))
+
 	type Check func(string) error
 	// 核验方法生成器
 	// 非空核验
@@ -98,17 +101,17 @@ func (r *ReadConfigCommand) Execute() bool {
 	//通用检查
 	checkMap := map[string]([]Check){
 		// "名称"
-		EXCEL_HEAD_ORDER[0]: {generateNotNullCheck()},
+		"name": {generateNotNullCheck()},
 		// "存档目录"
-		EXCEL_HEAD_ORDER[1]: {generateNotNullCheck(), generatePathCheck()},
+		"watchDir": {generateNotNullCheck(), generatePathCheck()},
 		// "中转文件目录"
-		EXCEL_HEAD_ORDER[2]: {generatePathCheck()},
+		"tempDir": {generatePathCheck()},
 		// "压缩文件存储目录"
-		EXCEL_HEAD_ORDER[3]: {generateNotNullCheck(), generatePathCheck()},
+		"archiveDir": {generateNotNullCheck(), generatePathCheck()},
 		// "自动存档间隔(分钟)"
-		EXCEL_HEAD_ORDER[4]: {generateNotNullCheck(), generateRangeCheck(true, 2, 120)},
+		"archiveInterval": {generateNotNullCheck(), generateRangeCheck(true, 2, 120)},
 		// "自动同步间隔(分钟)"
-		EXCEL_HEAD_ORDER[5]: {generateNotNullCheck(), generateRangeCheck(true, 1, 30)},
+		"syncInterval": {generateNotNullCheck(), generateRangeCheck(true, 1, 30)},
 	}
 	println(checkMap)
 	rules := make([]BackupArchive, 0)
@@ -121,30 +124,30 @@ func (r *ReadConfigCommand) Execute() bool {
 				text := config[EXCEL_HEAD_ORDER[row]]
 				for _, check := range checkMap[EXCEL_HEAD_ORDER[row]] {
 					if err := check(text); err != nil {
-						log.Printf("检查%d行\t%d列出错,内容为:%s,错误为：%s", line+2, row+1, text, err)
-						return false
+						err = errors.New(fmt.Sprintf("检查%d行\t%d列出错,内容为:%s,错误为：%s", line+2, row+1, text, err))
+						goto errorLog
 					}
 				}
 			}
 			//隐藏规则检查
-			archiveInterval, _ := strconv.Atoi(config[EXCEL_HEAD_ORDER[4]])
-			syncInterval, _ := strconv.Atoi(config[EXCEL_HEAD_ORDER[5]])
+			archiveInterval, _ := strconv.Atoi(config["archiveInterval"])
+			syncInterval, _ := strconv.Atoi(config["syncInterval"])
 			if archiveInterval < syncInterval {
-				log.Printf("检查%d行出错,同步时间大于存档时间", line+2)
-				return false
+				err = errors.New(fmt.Sprintf("检查%d行出错,同步时间大于存档时间", line+2))
+				goto errorLog
 			}
 			rule := BackupArchive{
-				name:            config[EXCEL_HEAD_ORDER[0]],
-				watchDir:        config[EXCEL_HEAD_ORDER[1]],
-				tempDir:         config[EXCEL_HEAD_ORDER[2]],
-				archiveDir:      config[EXCEL_HEAD_ORDER[3]],
+				name:            config["name"],
+				watchDir:        config["watchDir"],
+				tempDir:         config["tempDir"],
+				archiveDir:      config["archiveDir"],
 				archiveInterval: archiveInterval * 60,
 				syncInterval:    syncInterval * 60,
 			}
 			fmt.Println(rule.String())
 			if ok, _ := names[rule.name]; ok {
-				log.Printf("检查%d行出错,存在同名规则", line+2)
-				return false
+				err = errors.New(fmt.Sprintf("检查%d行出错,存在同名规则", line+2))
+				goto errorLog
 			}
 			names[rule.name] = true
 			rules = append(rules, rule)
@@ -156,13 +159,17 @@ func (r *ReadConfigCommand) Execute() bool {
 		if selectIndex := CommandMenu(true, configStr...); selectIndex != -1 {
 			r.ba = rules[selectIndex]
 		} else {
-			return false
+			goto errorLog
 		}
 		fmt.Println("当前规则为：\n", r.ba)
 	} else {
-		log.Fatal(err)
+		goto errorLog
 	}
 	return true
+
+errorLog:
+	log.Fatal(err)
+	return false
 }
 
 func (r *ReadConfigCommand) String() string {
@@ -175,21 +182,20 @@ type GenerateConfigDefaultCommand struct {
 }
 
 func (r *GenerateConfigDefaultCommand) Execute() bool {
-	defaultMarix := []map[string]string{{
-		// 名称
-		EXCEL_HEAD_ORDER[0]: "(不可为空)",
-		// 存档目录
-		EXCEL_HEAD_ORDER[1]: "(请将完整监控路径填入)",
-		// 中转文件目录
-		EXCEL_HEAD_ORDER[2]: "(此项可为空)",
-		// 压缩文件存储目录
-		EXCEL_HEAD_ORDER[3]: "(为空则为不使用)",
-		// 自动存档间隔(分钟)
-		EXCEL_HEAD_ORDER[4]: "(建议大于3,为0代表不自动备份,范围2-120)",
-		// 自动同步间隔(分钟)
-		EXCEL_HEAD_ORDER[5]: "(应小于自动同步间隔,建议1附近,为0代表不自动备份(频繁sl使用),范围1-30,且不能大于存档间隔，建议为存档间隔一半)",
-	}}
-	util.WriteCsvWithDict("config_default(需要改名为config才能使用).csv", defaultMarix, EXCEL_HEAD_ORDER...)
+	cfg, err := ini.Load("config.ini")
+
+	if err != nil {
+		fmt.Printf("Fail to read file: %v", err)
+		os.Exit(1)
+	}
+
+	tipDic := map[string]string{}
+	for k, v := range EXCEL_HEAD_TRANSLATE_DIC {
+		tipDic[v] = cfg.Section("excel_default_tip_ch").Key(k).String()
+	}
+
+	translatedHead, _ := util.TranslateList(EXCEL_HEAD_ORDER, EXCEL_HEAD_TRANSLATE_DIC)
+	util.WriteCsvWithDict("config_default(需要改名为config才能使用).csv", []map[string]string{tipDic}, translatedHead...)
 	fmt.Println("写入默认配置文件成功")
 	return true
 }
