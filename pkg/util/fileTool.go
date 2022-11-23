@@ -2,6 +2,8 @@ package util
 
 import (
 	"archive/zip"
+	"crypto/md5"
+	"crypto/sha1"
 	"encoding/csv"
 	"fmt"
 	"io"
@@ -18,7 +20,7 @@ func CompareDirs(pathl, pathr string) bool {
 	lst, _ := os.Stat(pathl)
 	rst, _ := os.Stat(pathr)
 	//文件不相同情况
-	if lst == nil || rst == nil || lst.IsDir() != rst.IsDir() || (!lst.IsDir() && rst.Size() != lst.Size()) {
+	if CompareFile(pathl, pathr) {
 		fmt.Printf("对比失败 %s %s\n", lst, rst)
 		fmt.Printf("路径分别为 %s %s\n", pathl, pathr)
 		return false
@@ -42,6 +44,25 @@ func CompareDirs(pathl, pathr string) bool {
 		}
 	}
 	return result
+}
+
+// 采用文件大小，md5,sha1方式比较文件是否相同
+func CompareFile(lpath, rpath string) bool {
+	lst, _ := os.Stat(lpath)
+	rst, _ := os.Stat(rpath)
+	// 文件不相同情况
+	// 简单判定
+	// 其中一个文件不存在 一为文件，一为文件夹	皆为文件，文件大小不同
+	if lst == nil || rst == nil || lst.IsDir() != rst.IsDir() || (!lst.IsDir() && (rst.Size() != lst.Size())) {
+		return false
+	} else if !lst.IsDir() && !rst.IsDir() {
+		// 摘要判定
+		ctxl, _ := ioutil.ReadFile(lpath)
+		ctxr, _ := ioutil.ReadFile(rpath)
+		return md5.Sum(ctxl) != md5.Sum(ctxr) && sha1.Sum(ctxl) != sha1.Sum(ctxr)
+	} else {
+		return true
+	}
 }
 
 // 从压缩包中还原文件
