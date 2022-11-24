@@ -20,7 +20,7 @@ func CompareDirs(pathl, pathr string) bool {
 	lst, _ := os.Stat(pathl)
 	rst, _ := os.Stat(pathr)
 	//文件不相同情况
-	if CompareFile(pathl, pathr) {
+	if !CompareFile(pathl, pathr) {
 		fmt.Printf("对比失败 %s %s\n", lst, rst)
 		fmt.Printf("路径分别为 %s %s\n", pathl, pathr)
 		return false
@@ -59,7 +59,7 @@ func CompareFile(lpath, rpath string) bool {
 		// 摘要判定
 		ctxl, _ := ioutil.ReadFile(lpath)
 		ctxr, _ := ioutil.ReadFile(rpath)
-		return md5.Sum(ctxl) != md5.Sum(ctxr) && sha1.Sum(ctxl) != sha1.Sum(ctxr)
+		return md5.Sum(ctxl) == md5.Sum(ctxr) && sha1.Sum(ctxl) == sha1.Sum(ctxr)
 	} else {
 		return true
 	}

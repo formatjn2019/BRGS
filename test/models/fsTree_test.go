@@ -148,9 +148,10 @@ func createFsTreeRoot() *models.FSTreeRoot {
 		log.Println("error: ", err)
 		return nil
 	}
-	b := ftn.BackupFiles()
+
 	ftn.WatchDirs()
 	ftn.Watch()
+	b := ftn.BackupFiles()
 	fmt.Println(b)
 	return ftn
 }

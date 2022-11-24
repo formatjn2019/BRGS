@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 
 	"github.com/fsnotify/fsnotify"
 )
@@ -26,19 +27,29 @@ func CreateFsTreeRoot(inputdir, outputdir string) *FSTreeRoot {
 		log.Println("error: ", err)
 		return nil
 	}
-	b := ftn.BackupFiles()
+
 	ftn.WatchDirs()
 	ftn.Watch()
+	b := ftn.BackupFiles()
 	fmt.Println(b)
 	return ftn
 }
 
 // 树的根
 type FSTreeRoot struct {
-	source  string
-	target  string
-	watcher *fsnotify.Watcher
-	dic     map[string]*FsTreeNode
+	appendDics chan map[string]bool
+	deleteDics chan map[string]bool
+	dic        map[string]*FsTreeNode
+	endTag     chan struct{}
+	eventCount int64
+	events     chan fsnotify.Event
+	source     string
+	state      *FstreeType
+	syncedDics chan map[string]bool
+	syncOp     chan int
+	syncTag    chan struct{}
+	target     string
+	watcher    *fsnotify.Watcher
 }
 
 // 根据输入文件夹创建根节点
@@ -54,7 +65,19 @@ func InitScanFolder(rootPath string) (*FSTreeRoot, error) {
 		rootPath, _ = filepath.Abs(rootPath)
 	}
 	treeMap := map[string]*FsTreeNode{}
-	result := &FSTreeRoot{source: rootPath, dic: treeMap}
+	result := &FSTreeRoot{
+		appendDics: make(chan map[string]bool),
+		deleteDics: make(chan map[string]bool),
+		dic:        treeMap,
+		endTag:     make(chan struct{}),
+		eventCount: 0,
+		events:     make(chan fsnotify.Event, 10000),
+		source:     rootPath,
+		state:      &FstreeType{state: FSTREE_WATCH},
+		syncedDics: make(chan map[string]bool),
+		syncOp:     make(chan int),
+		syncTag:    make(chan struct{}),
+	}
 	treeMap[""] = &FsTreeNode{path: "", exist: true, isDir: true, isAlter: false, synced: true, syncType: true, subs: map[string]*FsTreeNode{}}
 	result.ScanFolder(rootPath, "")
 	return result, nil
@@ -62,25 +85,16 @@ func InitScanFolder(rootPath string) (*FSTreeRoot, error) {
 
 // 正向同步文件
 func (root *FSTreeRoot) BackupFiles() bool {
-	appendDic, deleteDic := root.getSyncFiles()
+	root.syncOp <- FSTREE_OP_BACKUP_PREPERE
+	appendDic := <-root.appendDics
+	deleteDic := <-root.deleteDics
 	log.Printf("appendDic: %v\n", appendDic)
 	log.Printf("deleteDic: %v\n", deleteDic)
 	//同步完成
-	if synced, err := util.SyncFile(root.source, root.target, appendDic, deleteDic); err == nil {
-		log.Println("同步成功", err)
-		for key := range synced {
-			root.dic[key].Sync()
-		}
-		root.cleanup()
-		return true
-	} else {
-		log.Println("同步失败", err)
-		// 同步失败
-		for key := range synced {
-			root.dic[key].Sync()
-		}
-		return false
-	}
+	synced, err := util.SyncFile(root.source, root.target, appendDic, deleteDic)
+	root.syncOp <- FSTREE_OP_BACKUP_END
+	root.syncedDics <- synced
+	return err == nil
 }
 
 // 创建文件节点
@@ -121,23 +135,16 @@ func (root *FSTreeRoot) GetNode(key string) *FsTreeNode {
 
 // 逆向同步文件
 func (root *FSTreeRoot) RecoverFiles() bool {
-	appendDic, deleteDic := root.getReverseSyncFiles()
+	root.syncOp <- FSTREE_OP_RECOVER_PREPERE
+	appendDic := <-root.appendDics
+	deleteDic := <-root.deleteDics
 	log.Printf("appendDic: %v\n", appendDic)
 	log.Printf("deleteDic: %v\n", deleteDic)
 	//同步完成
-	if synced, err := util.SyncFile(root.target, root.source, appendDic, deleteDic); err == nil {
-		for key := range synced {
-			root.dic[key].ReverseSync()
-		}
-		root.cleanup()
-		return true
-	} else {
-		// 同步失败
-		for key := range synced {
-			root.dic[key].ReverseSync()
-		}
-		return false
-	}
+	synced, err := util.SyncFile(root.target, root.source, appendDic, deleteDic)
+	root.syncOp <- FSTREE_OP_RECOVER_END
+	root.syncedDics <- synced
+	return err == nil
 }
 
 // 扫描文件
@@ -172,15 +179,15 @@ func (root *FSTreeRoot) Show(changed bool) {
 	fmt.Println(strings.Repeat("*", 200))
 }
 
-// 文件监控操作
-func (root *FSTreeRoot) Watch() {
-	go func() {
-		for {
-			select {
-			case event, ok := <-root.watcher.Events:
-				if !ok {
-					return
-				}
+// 控制文件树的操作
+
+func (root *FSTreeRoot) watchTree() {
+	for {
+		select {
+		//取得操作映射
+		case _, ok := <-root.syncTag:
+			for ; ok && atomic.LoadInt64(&root.eventCount) > 0; atomic.AddInt64(&root.eventCount, -1) {
+				event, ok := <-root.events
 				log.Println("event:", event)
 				path := event.Name[len(root.source)+1:]
 				node, ok := root.dic[path]
@@ -190,9 +197,12 @@ func (root *FSTreeRoot) Watch() {
 						node.Delete()
 						if node.isDir {
 							err := root.watcher.Remove(event.Name)
-							fmt.Println("删除监控失败", err)
-							fmt.Println(node)
-							fmt.Println(len(node.subs))
+							if err != nil {
+								fmt.Println("移除监控失败", err)
+								fmt.Println(node)
+								fmt.Println(len(node.subs))
+							}
+
 						}
 						fmt.Println("删除测试成功")
 					}
@@ -223,18 +233,70 @@ func (root *FSTreeRoot) Watch() {
 						}
 
 					} else {
-						fmt.Println("其它状态")
-						fmt.Println(event)
-						fmt.Println(event.Op)
+						log.Println("其它状态")
+						log.Println(event)
+						log.Println(event.Op)
 					}
 				}
+			}
+			//取得操作映射
+		case op, ok := <-root.syncOp:
+			log.Println(op, ok)
+			if !ok {
+				return
+			}
+			switch op {
+			case FSTREE_OP_BACKUP_PREPERE:
+				root.getSyncFiles()
+			case FSTREE_OP_BACKUP_END:
+				for key := range <-root.syncedDics {
+					root.dic[key].Sync()
+				}
+				root.cleanup()
+			case FSTREE_OP_RECOVER_PREPERE:
+				root.getReverseSyncFiles()
+			case FSTREE_OP_RECOVER_END:
+				for key := range <-root.syncedDics {
+					root.dic[key].ReverseSync()
+				}
+				root.cleanup()
+			default:
+				panic("unsupport operation")
+			}
+
+		}
+	}
+}
+
+// 文件监控操作
+func (root *FSTreeRoot) Watch() {
+	//负责fsnotify的事件监听
+	go func() {
+		for {
+			select {
+			// 事件转移
+			case event, ok := <-root.watcher.Events:
+				if !ok {
+					return
+				}
+				log.Println(event, "监听文件改变")
+				root.events <- event
+				atomic.AddInt64(&root.eventCount, 1)
+				log.Println(event, root.state.state)
+				if root.state.state == FSTREE_WATCH {
+					root.syncTag <- struct{}{}
+				}
 			case err, ok := <-root.watcher.Errors:
-				if !ok { // Channel was closed (i.e. Watcher.Close() was called).
-					log.Println("监控异常", err)
+
+				if ok { // Channel was closed (i.e. Watcher.Close() was called).
+					if !ok { // Channel was closed (i.e. Watcher.Close() was called).
+						log.Println("监控异常", err)
+					}
 				}
 			}
 		}
 	}()
+	go root.watchTree()
 }
 
 // 添加文件夹监控
@@ -276,7 +338,7 @@ func (root *FSTreeRoot) cleanup() {
 }
 
 // 获取逆向同步的文件夹
-func (root *FSTreeRoot) getReverseSyncFiles() (map[string]bool, map[string]bool) {
+func (root *FSTreeRoot) getReverseSyncFiles() {
 	appendDic, deleteDic := map[string]bool{}, map[string]bool{}
 	//清理无效节点
 	root.cleanup()
@@ -295,11 +357,12 @@ func (root *FSTreeRoot) getReverseSyncFiles() (map[string]bool, map[string]bool)
 			}
 		}
 	}
-	return appendDic, deleteDic
+	root.appendDics <- appendDic
+	root.deleteDics <- deleteDic
 }
 
 // 获取同步的文件夹
-func (root *FSTreeRoot) getSyncFiles() (map[string]bool, map[string]bool) {
+func (root *FSTreeRoot) getSyncFiles() {
 	appendDic, deleteDic := map[string]bool{}, map[string]bool{}
 	//清理无效节点
 	root.cleanup()
@@ -318,5 +381,6 @@ func (root *FSTreeRoot) getSyncFiles() (map[string]bool, map[string]bool) {
 			}
 		}
 	}
-	return appendDic, deleteDic
+	root.appendDics <- appendDic
+	root.deleteDics <- deleteDic
 }

@@ -219,3 +219,14 @@ func TestSpeedCompare(t *testing.T) {
 func TestFilecompare(t *testing.T) {
 	fmt.Printf("util.CompareFile(\"plane.jpg\", \"ship.jpg\"): %v\n", util.CompareFile("plane.jpg", "ship.jpg"))
 }
+
+func TestCompareFileCopy(t *testing.T) {
+	file1, file2 := "input/01.前言.md", "output/01.前言.md"
+	fmt.Printf("util.CompareFile(file1, file2): %v\n", util.CompareFile(file1, file2))
+	ctx1, _ := ioutil.ReadFile(file1)
+	ctx2, _ := ioutil.ReadFile(file2)
+	fmt.Printf("md5.Sum(ctx1): %v\n", md5.Sum(ctx1))
+	fmt.Printf("md5.Sum(ctx2): %v\n", md5.Sum(ctx2))
+	fmt.Printf("md5.Sum(ctx2): %v\n", sha1.Sum(ctx1))
+	fmt.Printf("md5.Sum(ctx2): %v\n", sha1.Sum(ctx2))
+}
