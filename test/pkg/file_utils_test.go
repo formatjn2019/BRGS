@@ -1,7 +1,8 @@
 package test
 
 import (
-	"BRGS/pkg/util"
+	"BRGS/pkg/tools"
+	"BRGS/pkg/utils"
 	"crypto/md5"
 	"crypto/sha1"
 	"encoding/hex"
@@ -18,12 +19,12 @@ import (
 )
 
 func TestWalk(t *testing.T) {
-	util.WalkDir("D:\\testDir")
+	tools.WalkDir("D:\\testDir")
 }
 
 func TestWrite(t *testing.T) {
 	context := []map[string]string{{"标题1": "332", "标题2": "4422"}, {"标题1": "33", "标题2": "44"}}
-	util.WriteCsvWithDict("config.csv", context)
+	utils.WriteCsvWithDict("config.csv", context)
 }
 
 func TestSaveConfig(t *testing.T) {
@@ -38,8 +39,8 @@ func TestSaveConfig(t *testing.T) {
 
 func TestZip(t *testing.T) {
 	start := time.Now().UnixNano()
-	dict := util.WalkDir("D:\\testDir\\input")
-	fmt.Printf("tools.WriteZip(D:\\testDir\\archive\\test.zip, dict): %v\n", util.WriteZip("D:\\testDir\\archive\\test.zip", dict))
+	dict := tools.WalkDir("D:\\testDir\\input")
+	fmt.Printf("tools.WriteZip(D:\\testDir\\archive\\test.zip, dict): %v\n", tools.WriteZip("D:\\testDir\\archive\\test.zip", dict))
 	end := time.Now().UnixNano()
 	fmt.Println(start)
 	fmt.Println(end)
@@ -217,12 +218,12 @@ func TestSpeedCompare(t *testing.T) {
 }
 
 func TestFilecompare(t *testing.T) {
-	fmt.Printf("util.CompareFile(\"plane.jpg\", \"ship.jpg\"): %v\n", util.CompareFile("plane.jpg", "ship.jpg"))
+	fmt.Printf("util.CompareFile(\"plane.jpg\", \"ship.jpg\"): %v\n", utils.CompareFile("plane.jpg", "ship.jpg"))
 }
 
 func TestCompareFileCopy(t *testing.T) {
 	file1, file2 := "input/01.前言.md", "output/01.前言.md"
-	fmt.Printf("util.CompareFile(file1, file2): %v\n", util.CompareFile(file1, file2))
+	fmt.Printf("util.CompareFile(file1, file2): %v\n", utils.CompareFile(file1, file2))
 	ctx1, _ := ioutil.ReadFile(file1)
 	ctx2, _ := ioutil.ReadFile(file2)
 	fmt.Printf("md5.Sum(ctx1): %v\n", md5.Sum(ctx1))

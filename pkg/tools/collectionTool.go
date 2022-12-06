@@ -1,6 +1,8 @@
-package util
+package tools
 
-import "errors"
+import (
+	"BRGS/pkg/e"
+)
 
 // 翻译数组
 func TranslateList(origin []string, dict map[string]string) ([]string, error) {
@@ -9,7 +11,7 @@ func TranslateList(origin []string, dict map[string]string) ([]string, error) {
 		if translated, ok := dict[word]; ok {
 			result = append(result, translated)
 		} else {
-			return nil, errors.New("错误，待定")
+			return nil, e.TranslateToError(e.ERROR_TRANSLATE)
 		}
 	}
 	return result, nil

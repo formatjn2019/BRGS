@@ -1,7 +1,8 @@
 package models
 
 import (
-	"BRGS/pkg/util"
+	"BRGS/pkg/e"
+	"BRGS/pkg/tools"
 	"fmt"
 	"io/fs"
 	"io/ioutil"
@@ -17,14 +18,13 @@ import (
 func CreateFsTreeRoot(inputdir, outputdir string) *FSTreeRoot {
 	ftn, err := InitScanFolder(inputdir)
 	if err != nil {
-		log.Println("读取文件树错误")
-		log.Println("error: ", err)
+		e.TranslateToError(e.ERROR_SYNC_INIT, "读取文件树错误", err.Error())
 		return nil
 	}
 	err = ftn.CreateTargetDir(outputdir)
 	if err != nil {
 		log.Println("创建输出文件夹错误")
-		log.Println("error: ", err)
+		e.TranslateToError(e.ERROR_SYNC_INIT, "读取文件树错误", err.Error())
 		return nil
 	}
 
@@ -34,6 +34,23 @@ func CreateFsTreeRoot(inputdir, outputdir string) *FSTreeRoot {
 	fmt.Println(b)
 	return ftn
 }
+
+// 内部状态
+const (
+	FSTREE_OP_BACKUP_PREPERE = iota
+	FSTREE_OP_BACKUP_END
+	FSTREE_OP_RECOVER_PREPERE
+	FSTREE_OP_RECOVER_END
+	FSTREE_OP_ARCHIVE_PREPERE
+	FSTREE_OP_ARCHIVE_END
+)
+
+// 操作
+const (
+	FSTREE_OP_BACKUP = 3<<iota | 1
+	FSTREE_OP_RECOVER
+	FSTREE_OP_ARCHIVE
+)
 
 // 树的根
 type FSTreeRoot struct {
@@ -46,6 +63,7 @@ type FSTreeRoot struct {
 	source     string
 	state      *FstreeType
 	syncedDics chan map[string]bool
+	syncInput  chan int
 	syncOp     chan int
 	syncTag    chan struct{}
 	target     string
@@ -57,9 +75,7 @@ func InitScanFolder(rootPath string) (*FSTreeRoot, error) {
 	info, err := os.Stat(rootPath)
 	//不是文件夹或路径错误
 	if err != nil || !info.IsDir() {
-		log.Println("扫描路径出错")
-		log.Printf("info: %v\n", info)
-		log.Printf("err: %v\n", err)
+		err = e.TranslateToError(e.ERROR_SYNC_SCAN, rootPath, err.Error(), fmt.Sprint(info))
 		return nil, err
 	} else {
 		rootPath, _ = filepath.Abs(rootPath)
@@ -91,7 +107,7 @@ func (root *FSTreeRoot) BackupFiles() bool {
 	log.Printf("appendDic: %v\n", appendDic)
 	log.Printf("deleteDic: %v\n", deleteDic)
 	//同步完成
-	synced, err := util.SyncFile(root.source, root.target, appendDic, deleteDic)
+	synced, err := tools.SyncFile(root.source, root.target, appendDic, deleteDic)
 	root.syncOp <- FSTREE_OP_BACKUP_END
 	root.syncedDics <- synced
 	return err == nil
@@ -122,7 +138,7 @@ func (root *FSTreeRoot) CreateTargetDir(target string) error {
 	if _, err := os.Stat(target); err == nil {
 		err := os.RemoveAll(target)
 		if err != nil {
-			return err
+			return e.TranslateToError(e.ERROR_DELETE, target, err.Error())
 		}
 	}
 	return os.MkdirAll(target, fs.ModeDir)
@@ -133,6 +149,27 @@ func (root *FSTreeRoot) GetNode(key string) *FsTreeNode {
 	return root.dic[key]
 }
 
+// 接受命令
+func (root *FSTreeRoot) CommondInput(operation int) (err error) {
+	switch operation {
+	case FSTREE_OP_BACKUP:
+		if state, ok := root.state.ChangeToBackup(); ok {
+			log.Println("切换到备份状态")
+		} else {
+			err = e.TranslateToError(e.ERROR_SYNC_CHANGE_STATS, "当前状态为"+root.state.Translate(state))
+			goto errorLog
+		}
+	case FSTREE_OP_RECOVER:
+	case FSTREE_OP_ARCHIVE:
+	default:
+		panic(e.TranslateError(e.ERROR_OPERATION_UNSUPPORT))
+	}
+	return nil
+errorLog:
+	log.Println(err)
+	return err
+}
+
 // 逆向同步文件
 func (root *FSTreeRoot) RecoverFiles() bool {
 	root.syncOp <- FSTREE_OP_RECOVER_PREPERE
@@ -141,7 +178,7 @@ func (root *FSTreeRoot) RecoverFiles() bool {
 	log.Printf("appendDic: %v\n", appendDic)
 	log.Printf("deleteDic: %v\n", deleteDic)
 	//同步完成
-	synced, err := util.SyncFile(root.target, root.source, appendDic, deleteDic)
+	synced, err := tools.SyncFile(root.target, root.source, appendDic, deleteDic)
 	root.syncOp <- FSTREE_OP_RECOVER_END
 	root.syncedDics <- synced
 	return err == nil
@@ -159,7 +196,7 @@ func (root *FSTreeRoot) ScanFolder(path, parent string) {
 			}
 		}
 	} else {
-		log.Printf("扫描文件夹%s失败:\t%v\n", path, err)
+		log.Printf("扫描文件夹%s失败:\t%v\n", path, e.TranslateToError(e.ERROR_SYNC_SCAN, err.Error()))
 	}
 }
 
@@ -180,7 +217,6 @@ func (root *FSTreeRoot) Show(changed bool) {
 }
 
 // 控制文件树的操作
-
 func (root *FSTreeRoot) watchTree() {
 	for {
 		select {
@@ -211,7 +247,7 @@ func (root *FSTreeRoot) watchTree() {
 					if (event.Op == fsnotify.Write && node == nil) || event.Op == fsnotify.Create {
 						info, err := os.Stat(event.Name)
 						if err != nil {
-							log.Println(path, err)
+							log.Println(path, e.TranslateToError(e.ERROR_READ, event.Name, err.Error()))
 						}
 						fmt.Println(path)
 						parent := event.Name[len(root.source):strings.LastIndex(event.Name, "\\")]
@@ -261,7 +297,7 @@ func (root *FSTreeRoot) watchTree() {
 				}
 				root.cleanup()
 			default:
-				panic("unsupport operation")
+				panic(e.TranslateError(e.ERROR_OPERATION_UNSUPPORT))
 			}
 
 		}
@@ -304,6 +340,7 @@ func (root *FSTreeRoot) WatchDirs(exceptRule ...string) error {
 	if root.watcher == nil {
 		watcher, err := fsnotify.NewWatcher()
 		if err != nil {
+			log.Fatal(e.TranslateToError(e.ERROR_SYNC_WATCH, err.Error()))
 			return err
 		}
 		root.watcher = watcher

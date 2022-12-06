@@ -2,7 +2,7 @@ package test
 
 import (
 	"BRGS/models"
-	"BRGS/pkg/util"
+	"BRGS/pkg/tools"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -53,13 +53,13 @@ func TestFsTreeRandomBackup(t *testing.T) {
 			randomOperation(INPUT_DIR)
 			ftr.Show(true)
 		}
-		fmt.Printf("models.CompareDirs(INPUT_DIR, OUTPUT_DIR): %v\n", util.CompareDirs(INPUT_DIR, OUTPUT_DIR))
+		fmt.Printf("models.CompareDirs(INPUT_DIR, OUTPUT_DIR): %v\n", tools.CompareDirs(INPUT_DIR, OUTPUT_DIR))
 		if rand.Intn(2) > 0 {
 			fmt.Printf("ftr.BackupFiles(): %v\n", ftr.BackupFiles())
 		} else {
 			fmt.Printf("ftr.RecoverFiles(): %v\n", ftr.RecoverFiles())
 		}
-		fmt.Printf("models.CompareDirs(INPUT_DIR, OUTPUT_DIR): %v\n", util.CompareDirs(INPUT_DIR, OUTPUT_DIR))
+		fmt.Printf("models.CompareDirs(INPUT_DIR, OUTPUT_DIR): %v\n", tools.CompareDirs(INPUT_DIR, OUTPUT_DIR))
 	}
 }
 func TestOs(t *testing.T) {
@@ -82,7 +82,7 @@ func TestOtherMethods(t *testing.T) {
 	// fmt.Println(strings.Index(path, "D"))
 	// fmt.Printf("util.CompareDirs(INPUT_DIR, OUTPUT_DIR): %v\n", util.CompareDirs(INPUT_DIR, OUTPUT_DIR))
 	println(3)
-	util.CompareDirs(INPUT_DIR, TEMP_DIR)
+	tools.CompareDirs(INPUT_DIR, TEMP_DIR)
 }
 
 func TestFsNotify(t *testing.T) {
@@ -232,28 +232,28 @@ func showTrees(root *models.FSTreeRoot) {
 
 func syncTestBackup(ftn *models.FSTreeRoot, opers ...[]string) {
 	println(strings.Repeat("+", 200))
-	fmt.Printf("更改前文件夹同步状态%t\n", util.CompareDirs(INPUT_DIR, OUTPUT_DIR))
+	fmt.Printf("更改前文件夹同步状态%t\n", tools.CompareDirs(INPUT_DIR, OUTPUT_DIR))
 	for _, oper := range opers {
 		OsOperation(oper[0], oper[1:]...)
 	}
-	fmt.Printf("更改后文件夹同步状态%t\n", util.CompareDirs(INPUT_DIR, OUTPUT_DIR))
+	fmt.Printf("更改后文件夹同步状态%t\n", tools.CompareDirs(INPUT_DIR, OUTPUT_DIR))
 	ftn.Show(false)
 	ftn.BackupFiles()
 	ftn.Show(false)
-	fmt.Printf("同步后文件夹同步状态%t\n", util.CompareDirs(INPUT_DIR, OUTPUT_DIR))
+	fmt.Printf("同步后文件夹同步状态%t\n", tools.CompareDirs(INPUT_DIR, OUTPUT_DIR))
 	println(strings.Repeat("-", 200))
 }
 
 func syncTestRecover(ftn *models.FSTreeRoot, opers ...[]string) {
 	println(strings.Repeat("+", 200))
-	fmt.Printf("更改前文件夹同步状态%t\n", util.CompareDirs(INPUT_DIR, OUTPUT_DIR))
+	fmt.Printf("更改前文件夹同步状态%t\n", tools.CompareDirs(INPUT_DIR, OUTPUT_DIR))
 	for _, oper := range opers {
 		OsOperation(oper[0], oper[1:]...)
 	}
-	fmt.Printf("更改后文件夹同步状态%t\n", util.CompareDirs(INPUT_DIR, OUTPUT_DIR))
+	fmt.Printf("更改后文件夹同步状态%t\n", tools.CompareDirs(INPUT_DIR, OUTPUT_DIR))
 	ftn.Show(false)
 	ftn.RecoverFiles()
 	ftn.Show(false)
-	fmt.Printf("同步后文件夹同步状态%t\n", util.CompareDirs(INPUT_DIR, OUTPUT_DIR))
+	fmt.Printf("同步后文件夹同步状态%t\n", tools.CompareDirs(INPUT_DIR, OUTPUT_DIR))
 	println(strings.Repeat("-", 200))
 }

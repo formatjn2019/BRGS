@@ -2,7 +2,9 @@ package management
 
 import (
 	"BRGS/models"
-	"BRGS/pkg/util"
+	"BRGS/pkg/e"
+	"BRGS/pkg/tools"
+	"BRGS/pkg/utils"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -55,75 +57,38 @@ type ReadConfigCommand struct {
 }
 
 func (r *ReadConfigCommand) Execute() bool {
-	configs, err := util.ReadCsvAsDictAndTranslate("config.csv", util.DictReverse(EXCEL_HEAD_TRANSLATE_DIC))
+	configs, err := utils.ReadCsvAsDictAndTranslate("config.csv", tools.DictReverse(EXCEL_HEAD_TRANSLATE_DIC))
 
-	type Check func(string) error
-	// 核验方法生成器
 	// 非空核验
-	generateNotNullCheck := func() Check {
-		return func(s string) error {
-			if len(s) == 0 {
-				return errors.New("内容为空")
-			}
-			return nil
-		}
-	}
+	notNullCheck := tools.GenerateNotNullCheck()
 	// 路径核验
-	generatePathCheck := func() Check {
-		return func(str string) error {
-			//空字符串，卫语句
-			if str == "" {
-				return nil
-			}
-			if info, err := os.Stat(str); err != nil {
-				return err
-			} else if !info.IsDir() {
-				return errors.New("非文件夹")
-			}
-			return nil
-		}
-	}
-	// 字符数值核验
-	generateRangeCheck := func(zero bool, min, max int) Check {
-		return func(s string) error {
-			if num, err := strconv.Atoi(s); err != nil {
-				return err
-			} else if zero && num == 0 {
-				return nil
-			} else if num < min {
-				return errors.New("数值过小")
-			} else if num > max {
-				return errors.New("数值过大")
-			}
-			return nil
-		}
-	}
+	pathCheck := tools.GeneratePathCheck()
 	//通用检查
-	checkMap := map[string]([]Check){
+	checkMap := map[string]([]tools.Check){
 		// "名称"
-		"name": {generateNotNullCheck()},
+		"name": {notNullCheck},
 		// "存档目录"
-		"watchDir": {generateNotNullCheck(), generatePathCheck()},
+		"watchDir": {notNullCheck, pathCheck},
 		// "中转文件目录"
-		"tempDir": {generatePathCheck()},
+		"tempDir": {pathCheck},
 		// "压缩文件存储目录"
-		"archiveDir": {generateNotNullCheck(), generatePathCheck()},
+		"archiveDir": {notNullCheck, pathCheck},
 		// "自动存档间隔(分钟)"
-		"archiveInterval": {generateNotNullCheck(), generateRangeCheck(true, 2, 120)},
+		"archiveInterval": {notNullCheck, tools.GenerateRangeCheck(true, 2, 120)},
 		// "自动同步间隔(分钟)"
-		"syncInterval": {generateNotNullCheck(), generateRangeCheck(true, 1, 30)},
+		"syncInterval": {notNullCheck, tools.GenerateRangeCheck(true, 1, 30)},
 	}
 	println(checkMap)
 	rules := make([]BackupArchive, 0)
 	names := map[string]bool{}
 	if err == nil {
 		for line, config := range configs {
-			fmt.Println(line+1, config)
+			fmt.Println(line+1, "\t", config)
 			//通用规则检查
 			for row := 0; row < len(EXCEL_HEAD_ORDER); row++ {
 				text := config[EXCEL_HEAD_ORDER[row]]
 				for _, check := range checkMap[EXCEL_HEAD_ORDER[row]] {
-					if err := check(text); err != nil {
+					if err = check(text); err != nil {
 						err = errors.New(fmt.Sprintf("检查%d行\t%d列出错,内容为:%s,错误为：%s", line+2, row+1, text, err))
 						goto errorLog
 					}
@@ -133,7 +98,7 @@ func (r *ReadConfigCommand) Execute() bool {
 			archiveInterval, _ := strconv.Atoi(config["archiveInterval"])
 			syncInterval, _ := strconv.Atoi(config["syncInterval"])
 			if archiveInterval < syncInterval {
-				err = errors.New(fmt.Sprintf("检查%d行出错,同步时间大于存档时间", line+2))
+				err = e.TranslateToError(e.ERROR_INTERVAL, fmt.Sprintf("检查%d行出错", line+2))
 				goto errorLog
 			}
 			rule := BackupArchive{
@@ -146,7 +111,7 @@ func (r *ReadConfigCommand) Execute() bool {
 			}
 			fmt.Println(rule.String())
 			if ok, _ := names[rule.name]; ok {
-				err = errors.New(fmt.Sprintf("检查%d行出错,存在同名规则", line+2))
+				err = e.TranslateToError(e.ERROR_SAME_NAME, fmt.Sprintf("检查%d行出错", line+2))
 				goto errorLog
 			}
 			names[rule.name] = true
@@ -194,8 +159,8 @@ func (r *GenerateConfigDefaultCommand) Execute() bool {
 		tipDic[v] = cfg.Section("excel_default_tip_ch").Key(k).String()
 	}
 
-	translatedHead, _ := util.TranslateList(EXCEL_HEAD_ORDER, EXCEL_HEAD_TRANSLATE_DIC)
-	util.WriteCsvWithDict("config_default(需要改名为config才能使用).csv", []map[string]string{tipDic}, translatedHead...)
+	translatedHead, _ := tools.TranslateList(EXCEL_HEAD_ORDER, EXCEL_HEAD_TRANSLATE_DIC)
+	utils.WriteCsvWithDict("config_default(需要改名为config才能使用).csv", []map[string]string{tipDic}, translatedHead...)
 	fmt.Println("写入默认配置文件成功")
 	return true
 }
@@ -250,7 +215,7 @@ func (c *CompressedArchive) Execute() bool {
 	zipPath := filepath.Join(c.ba.archiveDir, fileName)
 	fmt.Println(fileName)
 	fmt.Println(zipPath)
-	if err := util.WriteZip(zipPath, util.WalkDir(c.ba.tempDir)); err != nil {
+	if err := tools.WriteZip(zipPath, tools.WalkDir(c.ba.tempDir)); err != nil {
 		return false
 	}
 	return true
@@ -328,7 +293,7 @@ func (r *ResoreFileFromArchive) Execute() bool {
 			return true
 		} else {
 			if index := CommandMenu(true, archives...); index >= 0 {
-				if err := util.RecoverFromArchive(filepath.Join(r.ba.archiveDir, archives[index]), r.ba.watchDir); err != nil {
+				if err := tools.RecoverFromArchive(filepath.Join(r.ba.archiveDir, archives[index]), r.ba.watchDir); err != nil {
 					log.Printf("还原%s失败", archives[index])
 					return false
 				} else {
