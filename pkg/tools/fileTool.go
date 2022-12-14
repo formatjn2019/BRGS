@@ -12,6 +12,7 @@ import (
 
 // 文件同步
 func SyncFile(pathSorce, pathTarget string, addDic, delDic map[string]bool) (synced map[string]bool, err error) {
+	synced = map[string]bool{}
 	log.Println("同步开始")
 	// 文件及文件夹删除
 	for file := range delDic {

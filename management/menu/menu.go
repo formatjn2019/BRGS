@@ -1,28 +1,29 @@
-package management
+package menu
 
 import (
-	"bufio"
-	"fmt"
-	"os"
-	"strconv"
+	"BRGS/management"
+	_ "BRGS/management"
+	"BRGS/management/commands"
+	"BRGS/pkg/tools"
 )
 
 // 菜单树
 func MenuTree() {
 	//共享数据
-	sd := shareData{}
-	backupCommand := &BackupCommand{shareData: &sd}
-	compressedArchive := &CompressedArchive{shareData: &sd}
-	exit := &Exit{shareData: &sd}
-	generateConfigDefaultCommand := &GenerateConfigDefaultCommand{shareData: &sd}
-	readConfigCommand := &ReadConfigCommand{shareData: &sd}
-	resoreBackup := &ResoreBackup{shareData: &sd}
-	resoreFileFromArchive := &ResoreFileFromArchive{shareData: &sd}
-	resetBackup := &ResetBackup{shareData: &sd}
-	stopBackupCommond := &StopBackupCommond{shareData: &sd}
-	manualAndAutoBackupCommand := &ManualAndAutoBackupCommand{shareData: &sd}
-	autoBackupCommand := &AutoBackupCommand{shareData: &sd}
-	manualBackupCommand := &ManualBackupCommand{shareData: &sd}
+
+	sd := management.ShareData{}
+	backupCommand := &commands.BackupCommand{ShareData: &sd}
+	compressedArchive := &commands.CompressedArchive{ShareData: &sd}
+	exit := &commands.Exit{ShareData: &sd}
+	generateConfigDefaultCommand := &commands.GenerateConfigDefaultCommand{ShareData: &sd}
+	readConfigCommand := &commands.ReadConfigCommand{ShareData: &sd}
+	resoreBackup := &commands.ResoreBackup{ShareData: &sd}
+	resoreFileFromArchive := &commands.ResoreFileFromArchive{ShareData: &sd}
+	resetBackup := &commands.ResetBackup{ShareData: &sd}
+	stopBackupCommond := &commands.StopBackupCommond{ShareData: &sd}
+	manualAndAutoBackupCommand := &commands.ManualAndAutoBackupCommand{ShareData: &sd}
+	autoBackupCommand := &commands.AutoBackupCommand{ShareData: &sd}
+	manualBackupCommand := &commands.ManualBackupCommand{ShareData: &sd}
 
 	menuConfig := []string{readConfigCommand.String(), generateConfigDefaultCommand.String(), exit.String()}
 	menuControl := []string{backupCommand.String(), compressedArchive.String(), resoreBackup.String(), resoreFileFromArchive.String(), resetBackup.String(), stopBackupCommond.String()}
@@ -31,7 +32,7 @@ func MenuTree() {
 	type Step struct {
 		prefix *[]string
 		next   *[]string
-		cmd    Command
+		cmd    management.Command
 	}
 	cmdDic := map[string]Step{
 		backupCommand.String():                {prefix: &menuControl, next: &menuControl, cmd: backupCommand},
@@ -50,7 +51,7 @@ func MenuTree() {
 
 	menu := &menuConfig
 	for {
-		if index := CommandMenu(false, *menu...); index == -1 {
+		if index := tools.CommandMenu(false, *menu...); index == -1 {
 			menu = &menuConfig
 		} else {
 			cmd := cmdDic[(*menu)[index]]
@@ -62,34 +63,4 @@ func MenuTree() {
 			}
 		}
 	}
-}
-
-// 命令行菜单
-func CommandMenu(canBack bool, menuItems ...string) int {
-	if canBack {
-		menuItems = append(menuItems, "返回上级")
-	}
-	menuSelect := func(menuItems ...string) int {
-		scanner := bufio.NewScanner(os.Stdin)
-		for {
-			for index, menuItem := range menuItems {
-				fmt.Printf("%5d.%80s\n", index+1, menuItem)
-			}
-			scanner.Scan()
-			text := scanner.Text()
-			if index, err := strconv.Atoi(text); err == nil {
-				if index <= len(menuItems) && index > 0 {
-					return index - 1
-				} else {
-					fmt.Println("输入无效，请重新输入")
-				}
-			}
-		}
-	}
-	//索引转换
-	index := menuSelect(menuItems...)
-	if canBack {
-		return (index+1)%len(menuItems) - 1
-	}
-	return index
 }
