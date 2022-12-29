@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"BRGS/conf"
 	"BRGS/management"
 	"BRGS/models"
 	"fmt"
@@ -18,7 +19,7 @@ func (r *AutoBackupCommand) Execute() bool {
 }
 
 func (r *AutoBackupCommand) String() string {
-	return fmt.Sprintf("根据配置自动备份")
+	return conf.CommandNames.AutoBackupCommand
 }
 
 // 手动备份命令
@@ -34,7 +35,7 @@ func (r *ManualBackupCommand) Execute() bool {
 }
 
 func (r *ManualBackupCommand) String() string {
-	return fmt.Sprintf("手动备份")
+	return conf.CommandNames.ManualBackupCommand
 }
 
 // 手动与自动备份命令
@@ -50,5 +51,5 @@ func (r *ManualAndAutoBackupCommand) Execute() bool {
 }
 
 func (r *ManualAndAutoBackupCommand) String() string {
-	return fmt.Sprintf("手动与自动双模式")
+	return conf.CommandNames.ManualAndAutoBackupCommand
 }

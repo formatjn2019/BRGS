@@ -18,6 +18,7 @@ const (
 // 功能错误
 const (
 	ERROR_TRANSLATE = (iota+1)<<3 | ERROR_FUNCTION
+	ERROR_READ_CONFIG
 )
 
 // IO错误
@@ -53,6 +54,7 @@ const (
 
 var translateDic = map[int]string{
 	ERROR_FUNCTION:                "功能错误",
+	ERROR_READ_CONFIG:             "读取配置文件错误",
 	ERROR_IO:                      "IO错误",
 	ERROR_SYNC:                    "同步错误",
 	ERROR_INPUT_CHECK:             "输入错误",

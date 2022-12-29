@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"BRGS/conf"
 	"BRGS/management"
 	"BRGS/pkg/e"
 	"BRGS/pkg/tools"
@@ -8,10 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"os"
 	"strconv"
-
-	"github.com/go-ini/ini"
 )
 
 // 读取命令
@@ -101,7 +99,7 @@ errorLog:
 }
 
 func (r *ReadConfigCommand) String() string {
-	return fmt.Sprintf("读取配置文件")
+	return conf.CommandNames.ReadConfigCommand
 }
 
 // 生成默认配置文件命令
@@ -110,18 +108,10 @@ type GenerateConfigDefaultCommand struct {
 }
 
 func (r *GenerateConfigDefaultCommand) Execute() bool {
-	cfg, err := ini.Load("config.ini")
-
-	if err != nil {
-		fmt.Printf("Fail to read file: %v", err)
-		os.Exit(1)
-	}
-
 	tipDic := map[string]string{}
 	for k, v := range management.EXCEL_HEAD_TRANSLATE_DIC {
-		tipDic[v] = cfg.Section("excel_default_tip_ch").Key(k).String()
+		tipDic[v] = management.EXCEL_TIP_DIC[k]
 	}
-
 	translatedHead, _ := tools.TranslateList(management.EXCEL_HEAD_ORDER, management.EXCEL_HEAD_TRANSLATE_DIC)
 	utils.WriteCsvWithDict("config_default(需要改名为config才能使用).csv", []map[string]string{tipDic}, translatedHead...)
 	fmt.Println("写入默认配置文件成功")
@@ -129,5 +119,5 @@ func (r *GenerateConfigDefaultCommand) Execute() bool {
 }
 
 func (r *GenerateConfigDefaultCommand) String() string {
-	return fmt.Sprintf("生成默认配置文件")
+	return conf.CommandNames.GenerateConfigDefaultCommand
 }

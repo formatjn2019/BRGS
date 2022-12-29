@@ -1,21 +1,28 @@
 package management
 
 import (
+	"BRGS/conf"
 	"BRGS/models"
 	"fmt"
-	"os"
 	"strconv"
-
-	"github.com/go-ini/ini"
 )
 
 var EXCEL_HEAD_TRANSLATE_DIC = map[string]string{
-	"name":            "name",
-	"watchDir":        "watchDir",
-	"tempDir":         "tempDir",
-	"archiveDir":      "archiveDir",
-	"archiveInterval": "archiveInterval",
-	"syncInterval":    "syncInterval",
+	"name":            conf.ExcelTranslateConf.Name,
+	"watchDir":        conf.ExcelTranslateConf.WatchDir,
+	"tempDir":         conf.ExcelTranslateConf.TempDir,
+	"archiveDir":      conf.ExcelTranslateConf.ArchiveDir,
+	"archiveInterval": conf.ExcelTranslateConf.ArchiveInterval,
+	"syncInterval":    conf.ExcelTranslateConf.SyncInterval,
+}
+
+var EXCEL_TIP_DIC = map[string]string{
+	"name":            conf.ExcelTipConf.Name,
+	"watchDir":        conf.ExcelTipConf.WatchDir,
+	"tempDir":         conf.ExcelTipConf.TempDir,
+	"archiveDir":      conf.ExcelTipConf.ArchiveDir,
+	"archiveInterval": conf.ExcelTipConf.ArchiveInterval,
+	"syncInterval":    conf.ExcelTipConf.SyncInterval,
 }
 
 var EXCEL_HEAD_ORDER = []string{
@@ -56,18 +63,4 @@ func (b *BackupArchive) GetConfigDic() map[string]string {
 
 func (b *BackupArchive) String() string {
 	return fmt.Sprintf("名称:%s\n存档目录:%s\n中转文件目录:%s\n压缩文件目录:%s\n文件同步间隔:%d分钟\n压缩存档间隔:%d分钟\n", b.Name, b.WatchDir, b.TempDir, b.ArchiveDir, b.SyncInterval/60, b.ArchiveInterval/60)
-}
-
-func init() {
-	cfg, err := ini.Load("config.ini")
-
-	if err != nil {
-		fmt.Printf("Fail to read file: %v", err)
-		os.Exit(1)
-	}
-
-	for k := range EXCEL_HEAD_TRANSLATE_DIC {
-		EXCEL_HEAD_TRANSLATE_DIC[k] = cfg.Section("excel_head_ch").Key(k).String()
-	}
-
 }

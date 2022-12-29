@@ -1,6 +1,8 @@
 package main
 
-import "BRGS/management/menu"
+import (
+	"BRGS/management/menu"
+)
 
 func main() {
 	// commands := management.METHODS_ALL
@@ -18,4 +20,5 @@ func main() {
 	// 	}
 	// }
 	menu.MenuTree()
+
 }

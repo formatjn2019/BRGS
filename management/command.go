@@ -16,4 +16,5 @@ type ShareData struct {
 	BackupArchive BackupArchive
 	Tree          models.FSTreeRoot
 	MatchRule     *regexp.Regexp
+	ServerChan    chan struct{}
 }

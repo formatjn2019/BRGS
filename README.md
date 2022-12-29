@@ -1,5 +1,6 @@
 # BRGS
- backup and restore of game saves
+
+backup and restore of game saves
 
 能对文件夹进行备份与还原及压缩操作
 
@@ -8,6 +9,8 @@
 可用于存档文件的保存或者频繁的sl操作
 
 版本
+v0.0.2  命令行功能完成
+
 v0.0.1  命令行基本功能完成
 
 

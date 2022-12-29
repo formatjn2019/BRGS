@@ -1,23 +1,22 @@
 package commands
 
 import (
+	"BRGS/conf"
 	"BRGS/management"
-	"BRGS/models"
 	"BRGS/pkg/tools"
 	"fmt"
 	"io/ioutil"
 	"log"
-	"os"
 	"path/filepath"
 	"time"
 )
 
 // 压缩存档命令
-type CompressedArchive struct {
+type CompressedArchiveCommand struct {
 	*management.ShareData
 }
 
-func (c *CompressedArchive) Execute() bool {
+func (c *CompressedArchiveCommand) Execute() bool {
 	fmt.Println("压缩执行")
 	nowTime := time.Now()
 	// 根据时间生成压缩包名称
@@ -31,57 +30,8 @@ func (c *CompressedArchive) Execute() bool {
 	return true
 }
 
-func (c *CompressedArchive) String() string {
-	return fmt.Sprintf("将同步文件夹压缩为压缩包")
-}
-
-// 退出命令
-type Exit struct {
-	*management.ShareData
-}
-
-func (e *Exit) Execute() bool {
-	log.Println("退出执行")
-	os.Exit(0)
-	return true
-}
-
-func (e *Exit) String() string {
-	return fmt.Sprintf("退出")
-}
-
-// 重置备份命令
-type ResetBackup struct {
-	*management.ShareData
-}
-
-func (r *ResetBackup) Execute() bool {
-	r.Tree = *models.CreateFsTreeRoot(r.BackupArchive.WatchDir, r.BackupArchive.TempDir)
-	fmt.Println("重置执行")
-	return true
-}
-
-func (r *ResetBackup) String() string {
-	return fmt.Sprintf("重置备份文件夹")
-}
-
-// 还原命令
-type ResoreBackup struct {
-	*management.ShareData
-}
-
-func (r *ResoreBackup) Execute() bool {
-	if r.Tree.RecoverFiles() {
-		fmt.Println("同步执行成功")
-		return true
-	} else {
-		fmt.Println("同步执行失败")
-		return false
-	}
-}
-
-func (r *ResoreBackup) String() string {
-	return fmt.Sprintf("从同步文件夹还原文件")
+func (c *CompressedArchiveCommand) String() string {
+	return conf.CommandNames.CompressedArchive
 }
 
 // 从存档还原命令
@@ -121,5 +71,5 @@ func (r *ResoreFileFromArchive) Execute() bool {
 }
 
 func (r *ResoreFileFromArchive) String() string {
-	return fmt.Sprintf("从压缩文件还原执行文件夹")
+	return conf.CommandNames.ResoreFileFromArchive
 }
