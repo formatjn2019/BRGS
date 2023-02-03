@@ -1,0 +1,67 @@
+{{define "index.tmpl"}}
+<html>
+	<head>
+      <style type="text/css">
+        .button {
+          width: 140px;
+          line-height: 38px;
+          text-align: center;
+          font-weight: bold;
+          color: #fff;
+          text-shadow: 1px 1px 1px #333;
+          border-radius: 5px;
+          margin: 0 20px 20px 0;
+          position: relative;
+          overflow: hidden;
+        }
+        .button.gray {
+          color: #8c96a0;
+          text-shadow: 1px 1px 1px #fff;
+          border: 1px solid #dce1e6;
+          box-shadow: 0 1px 2px #fff inset, 0 -1px 0 #a8abae inset;
+          background: -webkit-linear-gradient(top, #f2f3f7, #e4e8ec);
+          background: -moz-linear-gradient(top, #f2f3f7, #e4e8ec);
+          background: linear-gradient(top, #f2f3f7, #e4e8ec);
+        }
+        .tags {
+          padding-right: 30px;
+        }
+      </style>
+	   <script>
+        function click1(name){
+            console.log(" data " + name)
+			 console.log(url, "J");
+			console.log(window.location.href);
+			console.log(window.location.href);
+			var pathname = window.location.pathname; // 返回路径部分 (/path/example.html)
+			var url = window.location.href; // 返回完整 URL (https://example.com/path/example.html)
+			var origin = window.location.origin; // 返回基础 URL 部分 (https://example.com)
+			var domain = document.domain; // 返回域名部分 (example.com)
+			console.log(pathname + "<br>");
+			console.log(url + "<br>");
+			console.log(origin + "<br>");
+			console.log(domain + "<br>");
+        }
+        function click2(){
+            console.log("  data  click2")
+        }
+      </script>
+    </head>
+	<h1>
+		{{ .title }}
+
+		 {{range $idx,$ctx := .data}}
+			<h3>{{ $idx }}</h3>
+			<h3>{{ $ctx }}</h3>
+		<li><input type="button" onclick="click1( {{ $ctx }} )" class="button gray tags"/></li>
+    	{{end}}
+		 <form>
+            
+            <li><input type="button" onclick="click2()" class="button gray tags"/></li>
+        </form>
+	</h1>
+	<p>
+		Using posts/index.tmpl
+	</p>
+</html>
+{{ end }}

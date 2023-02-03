@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <style type="text/css">
+      .button {
+        width: 140px;
+        line-height: 38px;
+        text-align: center;
+        font-weight: bold;
+        color: #fff;
+        text-shadow: 1px 1px 1px #333;
+        border-radius: 5px;
+        margin: 0 20px 20px 0;
+        position: relative;
+        overflow: hidden;
+      }
+      .button.gray {
+        color: #8c96a0;
+        text-shadow: 1px 1px 1px #fff;
+        border: 1px solid #dce1e6;
+        box-shadow: 0 1px 2px #fff inset, 0 -1px 0 #a8abae inset;
+        background: -webkit-linear-gradient(top, #f2f3f7, #e4e8ec);
+        background: -moz-linear-gradient(top, #f2f3f7, #e4e8ec);
+        background: linear-gradient(top, #f2f3f7, #e4e8ec);
+      }
+      .tags {
+        padding-right: 3px;
+      }
+      .textarea {
+        border: 0;
+        border-radius: 5px;
+        background-color: rgba(241, 241, 241, 0.98);
+        width: 355px;
+        height: 100px;
+        padding: 10px;
+        resize: none;
+      }
+      .time {
+        background-color: rgba(171, 159, 159, 0.98);
+        width: 200px;
+        height: 30px;
+      }
+    </style>
+    <script>
+      setInterval(function () {
+        //var date = new Date(time);
+        var date = new Date();
+        var year = date.getFullYear(),
+          month = date.getMonth() + 1, //月份是从0开始的
+          day = date.getDate(),
+          hour = date.getHours(),
+          min = date.getMinutes(),
+          seconds = date.getSeconds();
+        // console.log(year+"-"+month+"-"+day+" "+hour+":"+min+":"+seconds);
+        let h3 = document.querySelector("h3");
+        h3.innerText =
+          year +
+          "-" +
+          month +
+          "-" +
+          day +
+          " " +
+          hour +
+          ":" +
+          min +
+          ":" +
+          seconds;
+        data = postRequire("logs");
+        let logarea = document.querySelector("textarea");
+        // logarea.innerText =
+        console.log(data)
+        console.log(data.log)
+      
+      }, 5000);
+
+      function postRequire(url) {
+        obj = null;
+        const xhr = new XMLHttpRequest();
+        xhr.onreadystatechange = () => {
+          if (xhr.readyState !== 4) return;
+          if ((xhr.status >= 200 && xhr.status < 300) || xhr.status === 304) {
+            console.log(xhr.responseText);
+            text = xhr.responseText;
+            obj = JSON.parse(text);
+          }
+        };
+        xhr.open("POST", url, true);
+        xhr.send(null);
+        return obj;
+      }
+
+      function doRequest(url) {
+        obj = postRequire(url);
+        console.log(url, obj);
+      }
+    </script>
+  </head>
+  <body>
+    <h1>{{ .title }}</h1>
+    <h3 class="time">时间</h3>
+    <div id="logdiv">
+      <textarea readonly="readonly" class="textarea" id="logarea"></textarea>
+    </div>
+
+    <form>
+      {{range $idx,$ctx := .data}}
+      <button
+        type="button"
+        onclick="doRequest({{ $ctx.Url }})"
+        class="button gray tags"
+      >
+        {{ $ctx.Text }}
+      </button>
+      <!-- <li><input type="button" onclick="click1( {{ $ctx }} )" class="button gray tags"/></li> -->
+      {{end}}
+    </form>
+  </body>
+</html>

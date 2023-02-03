@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <style type="text/css">
+      .button {
+        width: 140px;
+        line-height: 38px;
+        text-align: center;
+        font-weight: bold;
+        color: #fff;
+        text-shadow: 1px 1px 1px #333;
+        border-radius: 5px;
+        margin: 0 20px 20px 0;
+        position: relative;
+        overflow: hidden;
+      }
+      .button.gray {
+        color: #8c96a0;
+        text-shadow: 1px 1px 1px #fff;
+        border: 1px solid #dce1e6;
+        box-shadow: 0 1px 2px #fff inset, 0 -1px 0 #a8abae inset;
+        background: -webkit-linear-gradient(top, #f2f3f7, #e4e8ec);
+        background: -moz-linear-gradient(top, #f2f3f7, #e4e8ec);
+        background: linear-gradient(top, #f2f3f7, #e4e8ec);
+      }
+      .tags {
+        padding-right: 3px;
+      }
+      .textarea {
+        border: 0;
+        border-radius: 5px;
+        background-color: rgba(241, 241, 241, 0.98);
+        width: 355px;
+        height: 100px;
+        padding: 10px;
+        resize: none;
+      }
+    </style>
+    <script>
+      // setInterval(function () {
+      //         //var date = new Date(time);
+      //         var date = new Date();
+      //         var year = date.getFullYear(),
+      //             month = date.getMonth() + 1,//月份是从0开始的
+      //             day = date.getDate(),
+      //             hour = date.getHours(),
+      //             min = date.getMinutes(),
+      //             seconds=date.getSeconds();
+      //         console.log(year+"-"+month+"-"+day+" "+hour+":"+min+":"+seconds);
+      //         doRequest("test2")
+      //         // let h2 = document.querySelector("h2");
+      //         // h2.innerText=year+"-"+month+"-"+day+" "+hour+":"+min+":"+seconds;
+      //     },1000);
+      function doRequest(url) {
+        // console.log(url, "J");
+        // console.log(window.location.href);
+        // console.log(window.location.href);
+        // var pathname = window.location.pathname; // 返回路径部分 (/path/example.html)
+        // var url = window.location.href; // 返回完整 URL (https://example.com/path/example.html)]
+        // // 这个
+        // var origin = window.location.origin; // 返回基础 URL 部分 (https://example.com)
+        // var domain = document.domain; // 返回域名部分 (example.com)
+        // console.log(pathname + "<br>");
+        // console.log(url + "<br>");
+        // console.log(origin + "<br>");
+        // console.log(domain + "<br>");
+        // const url = "text.json";
+
+        const xhr = new XMLHttpRequest();
+        xhr.onreadystatechange = () => {
+          if (xhr.readyState !== 4) return;
+          if ((xhr.status >= 200 && xhr.status < 300) || xhr.status === 304) {
+            console.log(xhr.responseText);
+            text = xhr.responseText;
+            obj = JSON.parse(text);
+            console.log(obj.fff);
+          }
+        };
+        xhr.open("POST", "test", true);
+        xhr.send(null);
+        // var userName = '张文涛';
+        // var userTel = '15029193261';
+        // //1.创建ajax对象
+        // var ajax = new XMLHttpRequest();
+        // // 2.监听XHR对象的状态改变事件
+        // ajax.onreadystatechange = function (){
+        //     if(ajax.readyState==4&&ajax.status==200){
+        //        console.log(ajax.responseText,'ajax.responseText')
+        //     }
+        // }
+        // //3.连接服务器
+        // ajax.open('post','url',true);
+        // //设置请求头信息
+        // ajax.setRequestHeader('content-type','application/x-www-form-urlencoded');
+        // //4.发送请求
+        // ajax.send('userName='+userName+"&userTel="+userTel);
+      }
+    </script>
+  </head>
+  <h1>
+    {{ .title }}
+    <div id="logarea">
+      <textarea readonly="readonly" class="textarea" id="logs"></textarea>
+    </div>
+    <form>
+      <li>
+        <button
+          type="button"
+          onclick="doRequest('url')"
+          class="button gray tags"
+        >
+          备份
+        </button>
+      </li>
+    </form>
+  </h1>
+  
+
+</html>
