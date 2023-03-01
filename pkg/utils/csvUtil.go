@@ -7,8 +7,8 @@ import (
 	"os"
 )
 
-// 读取csv文件并翻译头
-func ReadCsvAsDictAndTranslate(filePath string, tralslateHeadDic map[string]string) (result []map[string]string, e error) {
+// ReadCsvAsDictAndTranslate 读取csv文件并翻译头
+func ReadCsvAsDictAndTranslate(filePath string, translateHeadDic map[string]string) (result []map[string]string, e error) {
 	originDicList, err := ReadCsvAsDict(filePath)
 	if err != nil {
 		return originDicList, err
@@ -16,14 +16,14 @@ func ReadCsvAsDictAndTranslate(filePath string, tralslateHeadDic map[string]stri
 	for _, oriDic := range originDicList {
 		tmpDic := map[string]string{}
 		for k, v := range oriDic {
-			tmpDic[tralslateHeadDic[k]] = v
+			tmpDic[translateHeadDic[k]] = v
 		}
 		result = append(result, tmpDic)
 	}
 	return result, nil
 }
 
-// 读取csv文件
+// ReadCsvAsDict 读取csv文件
 func ReadCsvAsDict(filePath string) (result []map[string]string, e error) {
 	file, _ := os.OpenFile(filePath, os.O_RDONLY, 438)
 	defer file.Close()
@@ -49,9 +49,9 @@ func ReadCsvAsDict(filePath string) (result []map[string]string, e error) {
 	return result, nil
 }
 
-// 将字典写入csv
+// WriteCsvWithDict 将字典写入csv
 func WriteCsvWithDict(filePath string, content []map[string]string, order ...string) error {
-	marix := make([][]string, 0)
+	matrix := make([][]string, 0)
 	headLine := make([]string, 0)
 	if len(order) != 0 {
 		headLine = order
@@ -60,7 +60,7 @@ func WriteCsvWithDict(filePath string, content []map[string]string, order ...str
 			headLine = append(headLine, k)
 		}
 	}
-	marix = append(marix, headLine)
+	matrix = append(matrix, headLine)
 	for _, lineDic := range content {
 		nLine := make([]string, 0)
 		for _, head := range headLine {
@@ -70,9 +70,9 @@ func WriteCsvWithDict(filePath string, content []map[string]string, order ...str
 				nLine = append(nLine, "")
 			}
 		}
-		marix = append(marix, nLine)
+		matrix = append(matrix, nLine)
 	}
-	// fmt.Println(marix)
+	// fmt.Println(matrix)
 	file, _ := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 438)
 	defer file.Close()
 	//excel 乱码问题，插入头
@@ -80,7 +80,7 @@ func WriteCsvWithDict(filePath string, content []map[string]string, order ...str
 	file.WriteString("\uFEFF")
 
 	w := csv.NewWriter(file)
-	w.WriteAll(marix)
+	w.WriteAll(matrix)
 	if err := w.Error(); err != nil {
 		log.Fatal(err)
 	}

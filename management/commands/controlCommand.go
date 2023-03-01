@@ -23,7 +23,7 @@ func (e *ExitCommand) String() string {
 	return conf.CommandNames.ExitCommand
 }
 
-// 启动web端
+// StartServerCommand 启动web端
 type StartServerCommand struct {
 	*management.ShareData
 }
@@ -54,7 +54,7 @@ func (e *StartServerCommand) String() string {
 	return conf.CommandNames.StartServerCommand
 }
 
-// 停止web端
+// StopServerCommand 停止web端
 type StopServerCommand struct {
 	*management.ShareData
 }

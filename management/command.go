@@ -5,16 +5,16 @@ import (
 	"regexp"
 )
 
-// 命令接口
+// Command 命令接口
 type Command interface {
 	Execute() bool
 	String() string
 }
 
-// 数据共享
+// ShareData 数据共享
 type ShareData struct {
 	BackupArchive BackupArchive
-	Tree          models.FSTreeRoot
+	Tree          models.FsTreeRoot
 	MatchRule     *regexp.Regexp
 	ServerChan    chan struct{}
 }

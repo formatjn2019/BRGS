@@ -11,7 +11,7 @@ import (
 	"strings"
 )
 
-// 从压缩包中还原文件
+// RecoverFromArchive 从压缩包中还原文件
 func RecoverFromArchive(zipPath, targetPath string) (err error) {
 	var logMessage string
 
@@ -65,11 +65,11 @@ func RecoverFromArchive(zipPath, targetPath string) (err error) {
 	return nil
 
 errorLog:
-	log.Fatal(e.TranslateToError(e.ERROR_SYNC_FAIL_DECOMPRESS, logMessage, err.Error()))
+	log.Fatal(e.TranslateToError(e.ErrorSyncFailDecompress, logMessage, err.Error()))
 	return err
 }
 
-// 将字典中的文件写入压缩包
+// WriteZip 将字典中的文件写入压缩包
 func WriteZip(fileName string, mapDic map[string]string) (err error) {
 
 	file, err := os.Create(fileName)
@@ -108,6 +108,6 @@ func WriteZip(fileName string, mapDic map[string]string) (err error) {
 	}
 	return nil
 errorLog:
-	log.Fatal(e.TranslateToError(e.ERROR_SYNC_FAIL_COMPRESS, logMessage, err.Error()))
+	log.Fatal(e.TranslateToError(e.ErrorSyncFailCompress, logMessage, err.Error()))
 	return err
 }

@@ -22,7 +22,7 @@ func TestWriteDefaultConfig(t *testing.T) {
 }
 
 func TestReadConfigCommand(t *testing.T) {
-	tools.DictReverse(management.EXCEL_HEAD_TRANSLATE_DIC)
+	tools.DictReverse(management.ExcelHeadTranslateDic)
 	readConfigCommand := &commands.ReadConfigCommand{}
 	readConfigCommand.Execute()
 }

@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-// 压缩存档命令
+// CompressedArchiveCommand 压缩存档命令
 type CompressedArchiveCommand struct {
 	*management.ShareData
 }
@@ -34,14 +34,15 @@ func (c *CompressedArchiveCommand) String() string {
 	return conf.CommandNames.CompressedArchive
 }
 
-// 从存档还原命令
-type ResoreFileFromArchive struct {
+// RestoreFileFromArchive 从存档还原命令
+type RestoreFileFromArchive struct {
 	*management.ShareData
 }
 
-func (r *ResoreFileFromArchive) Execute() bool {
+func (r *RestoreFileFromArchive) Execute() bool {
 	fmt.Println("从压缩文件还原执行")
 	archives := make([]string, 0)
+	// 待改正
 	if files, err := ioutil.ReadDir(r.BackupArchive.ArchiveDir); err == nil {
 		for _, info := range files {
 			if r.MatchRule.Match([]byte(info.Name())) {
@@ -70,6 +71,6 @@ func (r *ResoreFileFromArchive) Execute() bool {
 	return true
 }
 
-func (r *ResoreFileFromArchive) String() string {
-	return conf.CommandNames.ResoreFileFromArchive
+func (r *RestoreFileFromArchive) String() string {
+	return conf.CommandNames.RestoreFileFromArchive
 }

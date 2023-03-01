@@ -25,13 +25,13 @@ type CommandName struct {
 	ReadConfigCommand            string
 	GenerateConfigDefaultCommand string
 	// 压缩与解压命令
-	CompressedArchive     string
-	ResoreFileFromArchive string
+	CompressedArchive      string
+	RestoreFileFromArchive string
 	// 备份命令
 	BackupCommand     string
 	ResetBackup       string
-	ResoreBackup      string
-	StopBackupCommond string
+	RestoreBackup     string
+	StopBackupCommand string
 	// 备份控制命令
 	AutoBackupCommand          string
 	ManualAndAutoBackupCommand string
@@ -54,7 +54,7 @@ func init() {
 	cfg, err := ini.Load("config.ini")
 
 	if err != nil {
-		fmt.Printf(e.TranslateToError(e.ERROR_READ_CONFIG, "Fail to read file").Error())
+		fmt.Printf(e.TranslateToError(e.ErrorReadConfig, "Fail to read file").Error())
 		os.Exit(1)
 	}
 	cfg.Section("excel_head_ch").MapTo(ExcelTranslateConf)

@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 )
 
-// 文件同步
+// SyncFile 文件同步
 func SyncFile(pathSorce, pathTarget string, addDic, delDic map[string]bool) (synced map[string]bool, err error) {
 	synced = map[string]bool{}
 	log.Println("同步开始")
@@ -19,7 +19,7 @@ func SyncFile(pathSorce, pathTarget string, addDic, delDic map[string]bool) (syn
 		if stat, err := os.Stat(filepath.Join(pathTarget, file)); err == nil && stat != nil {
 			err := os.RemoveAll(filepath.Join(pathTarget, file))
 			if err != nil {
-				err = e.TranslateToError(e.ERROR_DELETE, file, err.Error())
+				err = e.TranslateToError(e.ErrorDelete, file, err.Error())
 				goto errorLog
 			}
 			synced[file] = true
@@ -33,7 +33,7 @@ func SyncFile(pathSorce, pathTarget string, addDic, delDic map[string]bool) (syn
 		if isDir {
 			err := os.MkdirAll(filepath.Join(pathTarget, dir), os.ModeDir)
 			if err != nil {
-				err = e.TranslateToError(e.ERROR_DELETE, dir, err.Error())
+				err = e.TranslateToError(e.ErrorDelete, dir, err.Error())
 				goto errorLog
 			}
 			log.Println("新建文件夹:\t", dir)
@@ -46,17 +46,17 @@ func SyncFile(pathSorce, pathTarget string, addDic, delDic map[string]bool) (syn
 		if !isDir {
 			fi, err := os.Stat(filepath.Join(pathSorce, file))
 			if err != nil {
-				err = e.TranslateToError(e.ERROR_READ, file, err.Error())
+				err = e.TranslateToError(e.ErrorRead, file, err.Error())
 				goto errorLog
 			}
 			cont, err := ioutil.ReadFile(filepath.Join(pathSorce, file))
 			if err != nil {
-				err = e.TranslateToError(e.ERROR_READ, file, err.Error())
+				err = e.TranslateToError(e.ErrorRead, file, err.Error())
 				goto errorLog
 			}
 			err = ioutil.WriteFile(filepath.Join(pathTarget, file), cont, fi.Mode())
 			if err != nil {
-				err = e.TranslateToError(e.ERROR_WRITE, file, err.Error())
+				err = e.TranslateToError(e.ErrorWrite, file, err.Error())
 				goto errorLog
 			}
 			log.Println("写入文件成功", file)
@@ -70,7 +70,7 @@ errorLog:
 	return synced, err
 }
 
-// 遍历目录获取相对路径
+// WalkDir 遍历目录获取相对路径
 func WalkDir(root string) map[string]string {
 	result := map[string]string{}
 	var walkDir func(string, string)
@@ -95,7 +95,7 @@ func WalkDir(root string) map[string]string {
 	return result
 }
 
-// 文件对比
+// CompareDirs 文件对比
 func CompareDirs(pathl, pathr string) bool {
 	result := true
 	lst, _ := os.Stat(pathl)

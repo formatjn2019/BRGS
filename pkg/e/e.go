@@ -8,77 +8,77 @@ import (
 
 // 功能划分
 const (
-	ERROR_FUNCTION = iota + 1
-	ERROR_IO
-	ERROR_SYNC
-	ERROR_INPUT_CHECK
-	ERROR_OPERATION_UNSUPPORT
+	ErrorFunction = iota + 1
+	ErrorIo
+	ErrorSync
+	ErrorInputCheck
+	ErrorOperationUnsupport
 )
 
 // 功能错误
 const (
-	ERROR_TRANSLATE = (iota+1)<<3 | ERROR_FUNCTION
-	ERROR_READ_CONFIG
+	ErrorTranslate = (iota+1)<<3 | ErrorFunction
+	ErrorReadConfig
 )
 
 // IO错误
 const (
-	ERROR_READ = (iota+1)<<3 | ERROR_IO
-	ERROR_WRITE
-	ERROR_CREATE
-	ERROR_DELETE
-	ERROR_MOVE
-	ERROR_UPDATE
+	ErrorRead = (iota+1)<<3 | ErrorIo
+	ErrorWrite
+	ErrorCreate
+	ErrorDelete
+	ErrorMove
+	ErrorUpdate
 )
 
 // 同步错误
 const (
-	ERROR_SYNC_INIT = (iota+1)<<3 | ERROR_SYNC
-	ERROR_SYNC_SCAN
-	ERROR_SYNC_WATCH
-	ERROR_SYNC_CHANGE_STATS
-	ERROR_SYNC_FAIL_BY_FILEUPDATE
-	ERROR_SYNC_FAIL_COMPRESS
-	ERROR_SYNC_FAIL_DECOMPRESS
+	ErrorSyncInit = (iota+1)<<3 | ErrorSync
+	ErrorSyncScan
+	ErrorSyncWatch
+	ErrorSyncChangeStats
+	ErrorSyncFailByFileUpdate
+	ErrorSyncFailCompress
+	ErrorSyncFailDecompress
 )
 
 // 输入错误
 const (
-	ERROR_EMPTY_STRING = (iota+1)<<3 | ERROR_INPUT_CHECK
-	ERROR_NOT_DIR
-	ERROR_INPUT_NUM_TOO_LARGE
-	ERROR_INPUT_NUM_TOO_SMALL
-	ERROR_INTERVAL
-	ERROR_SAME_NAME
+	ErrorEmptyString = (iota+1)<<3 | ErrorInputCheck
+	ErrorNotDir
+	ErrorInputNumTooLarge
+	ErrorInputNumTooSmall
+	ErrorInterval
+	ErrorSameName
 )
 
 var translateDic = map[int]string{
-	ERROR_FUNCTION:                "功能错误",
-	ERROR_READ_CONFIG:             "读取配置文件错误",
-	ERROR_IO:                      "IO错误",
-	ERROR_SYNC:                    "同步错误",
-	ERROR_INPUT_CHECK:             "输入错误",
-	ERROR_OPERATION_UNSUPPORT:     "不支持的操作",
-	ERROR_TRANSLATE:               "翻译",
-	ERROR_READ:                    "读取",
-	ERROR_WRITE:                   "写入",
-	ERROR_CREATE:                  "创建",
-	ERROR_DELETE:                  "删除",
-	ERROR_MOVE:                    "移动",
-	ERROR_UPDATE:                  "更新",
-	ERROR_SYNC_INIT:               "同步初始化",
-	ERROR_SYNC_SCAN:               "扫描文件夹",
-	ERROR_SYNC_WATCH:              "监控文件夹",
-	ERROR_SYNC_CHANGE_STATS:       "更改同步状态",
-	ERROR_SYNC_FAIL_BY_FILEUPDATE: "同步时更新文件",
-	ERROR_SYNC_FAIL_COMPRESS:      "压缩文件",
-	ERROR_SYNC_FAIL_DECOMPRESS:    "解压文件",
-	ERROR_EMPTY_STRING:            "空字符串",
-	ERROR_NOT_DIR:                 "非文件夹",
-	ERROR_INPUT_NUM_TOO_LARGE:     "数字过大",
-	ERROR_INPUT_NUM_TOO_SMALL:     "数字过小",
-	ERROR_INTERVAL:                "同步间隔大于归档间隔",
-	ERROR_SAME_NAME:               "名称重复",
+	ErrorFunction:             "功能错误",
+	ErrorReadConfig:           "读取配置文件错误",
+	ErrorIo:                   "IO错误",
+	ErrorSync:                 "同步错误",
+	ErrorInputCheck:           "输入错误",
+	ErrorOperationUnsupport:   "不支持的操作",
+	ErrorTranslate:            "翻译",
+	ErrorRead:                 "读取",
+	ErrorWrite:                "写入",
+	ErrorCreate:               "创建",
+	ErrorDelete:               "删除",
+	ErrorMove:                 "移动",
+	ErrorUpdate:               "更新",
+	ErrorSyncInit:             "同步初始化",
+	ErrorSyncScan:             "扫描文件夹",
+	ErrorSyncWatch:            "监控文件夹",
+	ErrorSyncChangeStats:      "更改同步状态",
+	ErrorSyncFailByFileUpdate: "同步时更新文件",
+	ErrorSyncFailCompress:     "压缩文件",
+	ErrorSyncFailDecompress:   "解压文件",
+	ErrorEmptyString:          "空字符串",
+	ErrorNotDir:               "非文件夹",
+	ErrorInputNumTooLarge:     "数字过大",
+	ErrorInputNumTooSmall:     "数字过小",
+	ErrorInterval:             "同步间隔大于归档间隔",
+	ErrorSameName:             "名称重复",
 }
 
 func TranslateError(code int) string {

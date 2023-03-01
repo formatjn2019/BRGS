@@ -8,9 +8,9 @@ import (
 )
 
 func GetState(c *gin.Context) {
-	t := models.FstreeType{}
+	t := models.FsTreeType{}
 	c.JSON(http.StatusOK, map[string]interface{}{
-		"state": t.Translate(models.FSTREE_BACKUP),
+		"state": t.Translate(models.FsTreeBackup),
 	})
 }
 

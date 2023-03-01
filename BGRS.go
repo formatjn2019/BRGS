@@ -19,6 +19,6 @@ func main() {
 	// 		break
 	// 	}
 	// }
-	menu.MenuTree()
+	menu.StartMenu()
 
 }

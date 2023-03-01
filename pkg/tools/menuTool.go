@@ -7,7 +7,7 @@ import (
 	"strconv"
 )
 
-// 命令行菜单
+// CommandMenu 命令行菜单
 func CommandMenu(canBack bool, menuItems ...string) int {
 	if canBack {
 		menuItems = append(menuItems, "返回上级")

@@ -7,7 +7,7 @@ import (
 	"strconv"
 )
 
-var EXCEL_HEAD_TRANSLATE_DIC = map[string]string{
+var ExcelHeadTranslateDic = map[string]string{
 	"name":            conf.ExcelTranslateConf.Name,
 	"watchDir":        conf.ExcelTranslateConf.WatchDir,
 	"tempDir":         conf.ExcelTranslateConf.TempDir,
@@ -16,7 +16,7 @@ var EXCEL_HEAD_TRANSLATE_DIC = map[string]string{
 	"syncInterval":    conf.ExcelTranslateConf.SyncInterval,
 }
 
-var EXCEL_TIP_DIC = map[string]string{
+var ExcelTipDic = map[string]string{
 	"name":            conf.ExcelTipConf.Name,
 	"watchDir":        conf.ExcelTipConf.WatchDir,
 	"tempDir":         conf.ExcelTipConf.TempDir,
@@ -25,7 +25,7 @@ var EXCEL_TIP_DIC = map[string]string{
 	"syncInterval":    conf.ExcelTipConf.SyncInterval,
 }
 
-var EXCEL_HEAD_ORDER = []string{
+var ExcelHeadOrder = []string{
 	"name",
 	"watchDir",
 	"tempDir",
@@ -35,7 +35,7 @@ var EXCEL_HEAD_ORDER = []string{
 }
 
 type BackupArchive struct {
-	Root            models.FSTreeRoot
+	Root            models.FsTreeRoot
 	ArchiveDir      string
 	Name            string
 	TempDir         string
@@ -54,9 +54,9 @@ func (b *BackupArchive) GetConfigDic() map[string]string {
 		"tempDir": b.TempDir,
 		// "压缩文件存储目录":   b.archiveDir,
 		"archiveDir": b.ArchiveDir,
-		// "自动存档间隔(分钟)": strconv.Itoa(b.archiveInterval),
+		// "自动存档间隔(分钟)": b.archiveInterval,
 		"archiveInterval": strconv.Itoa(b.ArchiveInterval / 60),
-		// "自动同步间隔(分钟)": strconv.Itoa(b.syncInterval),
+		// "自动同步间隔(分钟)":  b.syncInterval,
 		"syncInterval": strconv.Itoa(b.SyncInterval / 60),
 	}
 }

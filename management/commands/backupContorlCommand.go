@@ -8,7 +8,7 @@ import (
 	"regexp"
 )
 
-// 自动备份命令
+// AutoBackupCommand 自动备份命令
 type AutoBackupCommand struct {
 	*management.ShareData
 }
@@ -22,7 +22,7 @@ func (r *AutoBackupCommand) String() string {
 	return conf.CommandNames.AutoBackupCommand
 }
 
-// 手动备份命令
+// ManualBackupCommand 手动备份命令
 type ManualBackupCommand struct {
 	*management.ShareData
 }
@@ -38,7 +38,7 @@ func (r *ManualBackupCommand) String() string {
 	return conf.CommandNames.ManualBackupCommand
 }
 
-// 手动与自动备份命令
+// ManualAndAutoBackupCommand 手动与自动备份命令
 type ManualAndAutoBackupCommand struct {
 	*management.ShareData
 }

@@ -4,7 +4,7 @@ import (
 	"fmt"
 )
 
-// 树的结点
+// FsTreeNode 树的结点
 type FsTreeNode struct {
 	path     string      //相对路径
 	parent   *FsTreeNode //父目录
@@ -16,7 +16,7 @@ type FsTreeNode struct {
 	subs     map[string]*FsTreeNode
 }
 
-// 文件删除操作
+// Delete 文件删除操作
 func (ftn *FsTreeNode) Delete() {
 	ftn.exist = false
 	ftn.isAlter = true
@@ -28,20 +28,20 @@ func (ftn *FsTreeNode) Delete() {
 	}
 }
 
-// 文件更新操作
+// Update 文件更新操作
 func (ftn *FsTreeNode) Update() {
 	ftn.exist = true
 	ftn.isAlter = true
 }
 
-// 逆向文件同步操作
+// ReverseSync 逆向文件同步操作
 func (ftn *FsTreeNode) ReverseSync() {
 	ftn.isAlter = false
 	ftn.exist = ftn.synced
 	ftn.isDir = ftn.exist
 }
 
-// 输出
+// Subs 输出
 func (ftn *FsTreeNode) Subs() map[string]*FsTreeNode {
 	return ftn.subs
 }
@@ -51,7 +51,7 @@ func (ftn *FsTreeNode) String() string {
 	return fmt.Sprintf("路径%40s\t 文件夹：%t\t更改状态%t\t 是否存在%t\t同步状态%t\t同步类型%t\t 子文件%d\n", ftn.path, ftn.isDir, ftn.isAlter, ftn.exist, ftn.synced, ftn.syncType, len(ftn.subs))
 }
 
-// 文件同步操作
+// Sync 文件同步操作
 func (ftn *FsTreeNode) Sync() {
 	ftn.isAlter = false
 	ftn.synced = ftn.exist

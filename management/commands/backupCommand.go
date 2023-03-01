@@ -7,7 +7,7 @@ import (
 	"fmt"
 )
 
-// 备份命令
+// BackupCommand 备份命令
 type BackupCommand struct {
 	*management.ShareData
 }
@@ -26,7 +26,7 @@ func (b *BackupCommand) String() string {
 	return conf.CommandNames.BackupCommand
 }
 
-// 重置备份命令
+// ResetBackup 重置备份命令
 type ResetBackup struct {
 	*management.ShareData
 }
@@ -41,12 +41,12 @@ func (r *ResetBackup) String() string {
 	return conf.CommandNames.ResetBackup
 }
 
-// 还原命令
-type ResoreBackup struct {
+// RestoreBackup 还原命令
+type RestoreBackup struct {
 	*management.ShareData
 }
 
-func (r *ResoreBackup) Execute() bool {
+func (r *RestoreBackup) Execute() bool {
 	if r.Tree.RecoverFiles() {
 		fmt.Println("同步执行成功")
 		return true
@@ -56,20 +56,20 @@ func (r *ResoreBackup) Execute() bool {
 	}
 }
 
-func (r *ResoreBackup) String() string {
-	return conf.CommandNames.ResoreBackup
+func (r *RestoreBackup) String() string {
+	return conf.CommandNames.RestoreBackup
 }
 
-// 停止备份命令
-type StopBackupCommond struct {
+// StopBackupCommand 停止备份命令
+type StopBackupCommand struct {
 	*management.ShareData
 }
 
-func (b *StopBackupCommond) Execute() bool {
+func (b *StopBackupCommand) Execute() bool {
 	fmt.Println("停止同步执行")
 	return true
 }
 
-func (b *StopBackupCommond) String() string {
-	return conf.CommandNames.StopBackupCommond
+func (b *StopBackupCommand) String() string {
+	return conf.CommandNames.StopBackupCommand
 }

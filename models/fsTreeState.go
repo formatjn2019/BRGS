@@ -9,43 +9,43 @@ import (
 // 小到大 末尾为1
 // 大到小 末尾为0
 const (
-	FSTREE_WATCH = 2 << iota
-	FSTREE_BACKUP
-	FSTREE_ARCHIVE
-	FSTREE_RECOVER
-	FSTREE_WATCH_TO_BACKUP  = FSTREE_WATCH | FSTREE_BACKUP | 1
-	FSTREE_BACKUP_TO_WATCH  = FSTREE_WATCH | FSTREE_BACKUP
-	FSTREE_WATCH_TO_RECOVER = FSTREE_WATCH | FSTREE_RECOVER | 1
-	FSTREE_RECOVER_TO_WATCH = FSTREE_WATCH | FSTREE_RECOVER
-	FSTREE_WATCH_TO_ARCHIVE = FSTREE_WATCH | FSTREE_ARCHIVE | 1
-	FSTREE_ARCHIVE_TO_WATCH = FSTREE_WATCH | FSTREE_ARCHIVE
+	FsTreeWatch = 2 << iota
+	FsTreeBackup
+	FsTreeArchive
+	FsTreeRecover
+	FsTreeWatchToBackup  = FsTreeWatch | FsTreeBackup | 1
+	FsTreeBackupToWatch  = FsTreeWatch | FsTreeBackup
+	FsTreeWatchToRecover = FsTreeWatch | FsTreeRecover | 1
+	FsTreeRecoverToWatch = FsTreeWatch | FsTreeRecover
+	FsTreeWatchToArchive = FsTreeWatch | FsTreeArchive | 1
+	FsTreeArchiveToWatch = FsTreeWatch | FsTreeArchive
 )
 
-type FstreeType struct {
+type FsTreeType struct {
 	state int
 	mx    sync.Mutex
 }
 
 // 判断状态是否可以进行该状态的转换
-func (f *FstreeType) canChange(from, to int) bool {
-	COVER_NUM := from | to
+func (f *FsTreeType) canChange(from, to int) bool {
+	coverNum := from | to
 	if from < to {
-		COVER_NUM |= 1
+		coverNum |= 1
 	}
-	switch COVER_NUM {
-	case FSTREE_WATCH_TO_BACKUP, FSTREE_WATCH_TO_ARCHIVE, FSTREE_WATCH_TO_RECOVER,
-		FSTREE_BACKUP_TO_WATCH, FSTREE_RECOVER_TO_WATCH, FSTREE_ARCHIVE_TO_WATCH:
+	switch coverNum {
+	case FsTreeWatchToBackup, FsTreeWatchToArchive, FsTreeWatchToRecover,
+		FsTreeBackupToWatch, FsTreeRecoverToWatch, FsTreeArchiveToWatch:
 		return true
 	default:
 		return false
 	}
 }
 
-func (f *FstreeType) State() int {
+func (f *FsTreeType) State() int {
 	return f.state
 }
 
-func (f *FstreeType) changeState(target int) (int, bool) {
+func (f *FsTreeType) changeState(target int) (int, bool) {
 	f.mx.Lock()
 	defer f.mx.Unlock()
 	if f.canChange(f.state, target) {
@@ -55,33 +55,33 @@ func (f *FstreeType) changeState(target int) (int, bool) {
 	return f.state, false
 }
 
-// 切换为备份状态
-func (f *FstreeType) ChangeToBackup() (int, bool) {
-	return f.changeState(FSTREE_BACKUP)
+// ChangeToBackup 切换为备份状态
+func (f *FsTreeType) ChangeToBackup() (int, bool) {
+	return f.changeState(FsTreeBackup)
 }
 
-// 切换为监控状态
-func (f *FstreeType) ChangeToWatch() (int, bool) {
-	return f.changeState(FSTREE_WATCH)
+// ChangeToWatch 切换为监控状态
+func (f *FsTreeType) ChangeToWatch() (int, bool) {
+	return f.changeState(FsTreeWatch)
 }
 
-// 切换为还原状态
-func (f *FstreeType) ChangeToRecover() (int, bool) {
-	return f.changeState(FSTREE_RECOVER)
+// ChangeToRecover 切换为还原状态
+func (f *FsTreeType) ChangeToRecover() (int, bool) {
+	return f.changeState(FsTreeRecover)
 }
 
-// 翻译当前状态
-func (f *FstreeType) Translate(state int) string {
+// Translate 翻译当前状态
+func (f *FsTreeType) Translate(state int) string {
 	switch state {
-	case FSTREE_ARCHIVE:
-		return "FSTREE_ARCHIVE"
-	case FSTREE_BACKUP:
-		return "FSTREE_BACKUP"
-	case FSTREE_RECOVER:
-		return "FSTREE_RECOVER"
-	case FSTREE_WATCH:
-		return "FSTREE_WATCH"
+	case FsTreeArchive:
+		return "FsTreeArchive"
+	case FsTreeBackup:
+		return "FsTreeBackup"
+	case FsTreeRecover:
+		return "FsTreeRecover"
+	case FsTreeWatch:
+		return "FsTreeWatch"
 	default:
-		panic(e.ERROR_OPERATION_UNSUPPORT)
+		panic(e.ErrorOperationUnsupport)
 	}
 }

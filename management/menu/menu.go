@@ -7,7 +7,7 @@ import (
 )
 
 // 菜单树
-func MenuTree() {
+func StartMenu() {
 	//共享数据
 
 	sd := management.ShareData{ServerChan: make(chan struct{})}
@@ -16,10 +16,10 @@ func MenuTree() {
 	exit := &commands.ExitCommand{ShareData: &sd}
 	generateConfigDefaultCommand := &commands.GenerateConfigDefaultCommand{ShareData: &sd}
 	readConfigCommand := &commands.ReadConfigCommand{ShareData: &sd}
-	resoreBackup := &commands.ResoreBackup{ShareData: &sd}
-	resoreFileFromArchive := &commands.ResoreFileFromArchive{ShareData: &sd}
+	restoreBackup := &commands.RestoreBackup{ShareData: &sd}
+	restoreFileFromArchive := &commands.RestoreFileFromArchive{ShareData: &sd}
 	resetBackup := &commands.ResetBackup{ShareData: &sd}
-	stopBackupCommond := &commands.StopBackupCommond{ShareData: &sd}
+	stopBackupCommand := &commands.StopBackupCommand{ShareData: &sd}
 	manualAndAutoBackupCommand := &commands.ManualAndAutoBackupCommand{ShareData: &sd}
 	autoBackupCommand := &commands.AutoBackupCommand{ShareData: &sd}
 	manualBackupCommand := &commands.ManualBackupCommand{ShareData: &sd}
@@ -27,9 +27,9 @@ func MenuTree() {
 	stopServerCommand := &commands.StopServerCommand{ShareData: &sd}
 
 	menuConfig := []string{readConfigCommand.String(), generateConfigDefaultCommand.String(), exit.String()}
-	menuControl := []string{backupCommand.String(), compressedArchive.String(), resoreBackup.String(), resoreFileFromArchive.String(), resetBackup.String(), stopBackupCommond.String()}
+	menuControl := []string{backupCommand.String(), compressedArchive.String(), restoreBackup.String(), restoreFileFromArchive.String(), resetBackup.String(), stopBackupCommand.String()}
 	menuType := []string{autoBackupCommand.String(), manualBackupCommand.String(), manualAndAutoBackupCommand.String(), startServerCommand.String(), stopServerCommand.String()}
-	menuAutoBackup := []string{stopBackupCommond.String()}
+	menuAutoBackup := []string{stopBackupCommand.String()}
 
 	closeServer := func() {
 		println("close server")
@@ -46,15 +46,15 @@ func MenuTree() {
 		exit.String():                         {prefix: &menuConfig, next: nil, cmd: exit},
 		generateConfigDefaultCommand.String(): {prefix: &menuConfig, next: &menuConfig, cmd: generateConfigDefaultCommand},
 		readConfigCommand.String():            {prefix: &menuConfig, next: &menuType, cmd: readConfigCommand},
-		resoreBackup.String():                 {prefix: &menuControl, next: &menuControl, cmd: resoreBackup},
-		resoreFileFromArchive.String():        {prefix: &menuControl, next: &menuControl, cmd: resoreFileFromArchive},
+		restoreBackup.String():                {prefix: &menuControl, next: &menuControl, cmd: restoreBackup},
+		restoreFileFromArchive.String():       {prefix: &menuControl, next: &menuControl, cmd: restoreFileFromArchive},
 		resetBackup.String():                  {prefix: &menuConfig, next: &menuControl, cmd: resetBackup},
-		stopBackupCommond.String():            {prefix: &menuControl, next: &menuConfig, cmd: stopBackupCommond, concelDo: closeServer},
+		stopBackupCommand.String():            {prefix: &menuControl, next: &menuConfig, cmd: stopBackupCommand, concelDo: closeServer},
 		manualAndAutoBackupCommand.String():   {prefix: &menuConfig, next: &menuControl, cmd: manualAndAutoBackupCommand, concelDo: closeServer},
 		autoBackupCommand.String():            {prefix: &menuConfig, next: &menuAutoBackup, cmd: autoBackupCommand, concelDo: closeServer},
 		manualBackupCommand.String():          {prefix: &menuConfig, next: &menuControl, cmd: manualBackupCommand, concelDo: closeServer},
 		startServerCommand.String():           {prefix: &menuConfig, next: &menuControl, cmd: startServerCommand, concelDo: closeServer},
-		stopServerCommand.String():            {prefix: &menuConfig, next: &menuControl, cmd: stopBackupCommond, concelDo: closeServer},
+		stopServerCommand.String():            {prefix: &menuConfig, next: &menuControl, cmd: stopBackupCommand, concelDo: closeServer},
 	}
 
 	menu := &menuConfig
