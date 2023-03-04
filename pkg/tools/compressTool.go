@@ -73,6 +73,7 @@ errorLog:
 func WriteZip(fileName string, mapDic map[string]string) (err error) {
 
 	file, err := os.Create(fileName)
+	defer file.Close()
 	var logMessage string
 	zipWriter := zip.NewWriter(file)
 	defer zipWriter.Close()
@@ -81,7 +82,6 @@ func WriteZip(fileName string, mapDic map[string]string) (err error) {
 		logMessage = "压缩文件创建错误"
 		goto errorLog
 	}
-	defer file.Close()
 
 	for path, target := range mapDic {
 		iowriter, err := zipWriter.Create(target)
