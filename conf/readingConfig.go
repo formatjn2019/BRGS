@@ -57,8 +57,17 @@ func init() {
 		fmt.Printf(e.TranslateToError(e.ErrorReadConfig, "Fail to read file").Error())
 		os.Exit(1)
 	}
-	cfg.Section("excel_head_ch").MapTo(ExcelTranslateConf)
-	cfg.Section("excel_default_tip_ch").MapTo(ExcelTipConf)
-	cfg.Section("command_name").MapTo(CommandNames)
-	cfg.Section("server").MapTo(ServerConf)
+	sectionArgMap := map[string]interface{}{
+		"excel_head_ch":        ExcelTranslateConf,
+		"excel_default_tip_ch": ExcelTipConf,
+		"command_name":         CommandNames,
+		"server":               ServerConf,
+	}
+	for key, arg := range sectionArgMap {
+		err := cfg.Section(key).MapTo(arg)
+		if err != nil {
+			fmt.Printf(e.TranslateToError(e.ErrorReadConfig, "Fail to parse config").Error())
+			os.Exit(1)
+		}
+	}
 }

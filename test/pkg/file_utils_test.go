@@ -147,11 +147,22 @@ func TestSameMd5(t *testing.T) {
 	fmt.Println(MD5("plane.jpg"))
 	fmt.Println(MD5("ship.jpg"))
 
-	arr, _ := ioutil.ReadFile("plane.jpg")
-	arr2, _ := ioutil.ReadFile("ship.jpg")
+	arr, _ := os.ReadFile("plane.jpg")
+	arr2, _ := os.ReadFile("ship.jpg")
 	fmt.Printf("crc32.ChecksumIEEE(arr): %v\n", crc32.ChecksumIEEE(arr))
 	fmt.Printf("crc32.ChecksumIEEE(arr): %v\n", crc32.ChecksumIEEE(arr2))
 
+}
+
+func TestSameMd5String(t *testing.T) {
+	data1, _ := hex.DecodeString("4dc968ff0ee35c209572d4777b721587d36fa7b21bdc56b74a3dc0783e7b9518afbfa200a8284bf36e8e4b55b35f427593d849676da0d1555d8360fb5f07fea2")
+	data2, _ := hex.DecodeString("4dc968ff0ee35c209572d4777b721587d36fa7b21bdc56b74a3dc0783e7b9518afbfa202a8284bf36e8e4b55b35f427593d849676da0d1d55d8360fb5f07fea2")
+	fmt.Println(string(data1) == string(data2))
+	//fmt.Println(string(data1))
+	//fmt.Println(string(data2))
+	strMd51, strMd52 := fmt.Sprintf("%x", md5.Sum(data1)), fmt.Sprintf("%x", md5.Sum(data2))
+	fmt.Println(strMd51 + "\n" + strMd52)
+	fmt.Println(strMd51 == strMd52)
 }
 
 func TestCrc32Same(t *testing.T) {
@@ -230,4 +241,13 @@ func TestCompareFileCopy(t *testing.T) {
 	fmt.Printf("md5.Sum(ctx2): %v\n", md5.Sum(ctx2))
 	fmt.Printf("md5.Sum(ctx2): %v\n", sha1.Sum(ctx1))
 	fmt.Printf("md5.Sum(ctx2): %v\n", sha1.Sum(ctx2))
+}
+
+func TestCalculateAllFile(t *testing.T) {
+	path := `D:\testf`
+	pathUidDic, err := tools.CalculateAllUid(path)
+	fmt.Println(pathUidDic)
+	fmt.Println(err)
+	result, err := tools.CheckUid(pathUidDic)
+	fmt.Println(result, err)
 }

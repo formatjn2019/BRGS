@@ -29,6 +29,7 @@ const (
 	ErrorDelete
 	ErrorMove
 	ErrorUpdate
+	ErrorCalculate
 )
 
 // 同步错误
@@ -66,6 +67,7 @@ var translateDic = map[int]string{
 	ErrorDelete:               "删除",
 	ErrorMove:                 "移动",
 	ErrorUpdate:               "更新",
+	ErrorCalculate:            "计算",
 	ErrorSyncInit:             "同步初始化",
 	ErrorSyncScan:             "扫描文件夹",
 	ErrorSyncWatch:            "监控文件夹",
