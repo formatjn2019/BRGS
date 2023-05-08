@@ -9,12 +9,12 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strconv"
+	"strings"
 	"sync"
 )
 
@@ -61,12 +61,12 @@ func SyncFile(pathSorce, pathTarget string, addDic, delDic map[string]bool) (syn
 				err = e.TranslateToError(e.ErrorRead, file, err.Error())
 				goto errorLog
 			}
-			cont, err := ioutil.ReadFile(filepath.Join(pathSorce, file))
+			cont, err := os.ReadFile(filepath.Join(pathSorce, file))
 			if err != nil {
 				err = e.TranslateToError(e.ErrorRead, file, err.Error())
 				goto errorLog
 			}
-			err = ioutil.WriteFile(filepath.Join(pathTarget, file), cont, fi.Mode())
+			err = os.WriteFile(filepath.Join(pathTarget, file), cont, fi.Mode())
 			if err != nil {
 				err = e.TranslateToError(e.ErrorWrite, file, err.Error())
 				goto errorLog
@@ -83,26 +83,18 @@ errorLog:
 }
 
 // WalkDir 遍历目录获取相对路径
+// 注 使用新方法比原方法慢了近十倍
 func WalkDir(root string) map[string]string {
 	result := map[string]string{}
-	var walkDir func(string, string)
-	walkDir = func(root string, prefix string) {
-		fl, err := ioutil.ReadDir(root)
-		if err != nil {
-			panic(err)
-		} else {
-			for _, file := range fl {
-				if file.IsDir() {
-					walkDir(filepath.Join(root, file.Name()), prefix+"/"+file.Name())
-				} else {
-					result[filepath.Join(root, file.Name())] = (prefix + "/" + file.Name())[1:]
-				}
-			}
+	err := filepath.Walk(root, func(path string, info fs.FileInfo, err error) error {
+		if !info.IsDir() {
+			rl, _ := filepath.Rel(root, path)
+			result[path] = strings.ReplaceAll(rl, "\\", "/")
 		}
-	}
-	walkDir(root, "")
-	for key, value := range result {
-		log.Printf("%-70s\t--------->\t%-50s", key, value)
+		return err
+	})
+	if err != nil {
+		return nil
 	}
 	return result
 }
@@ -122,11 +114,11 @@ func CompareDirs(pathl, pathr string) bool {
 	}
 	if lst != nil && rst != nil && lst.IsDir() && rst.IsDir() {
 		next := map[string]bool{}
-		files, _ := ioutil.ReadDir(pathl)
+		files, _ := os.ReadDir(pathl)
 		for _, file := range files {
 			next[file.Name()] = true
 		}
-		files, _ = ioutil.ReadDir(pathr)
+		files, _ = os.ReadDir(pathr)
 		for _, file := range files {
 			next[file.Name()] = true
 		}
@@ -140,7 +132,7 @@ func CompareDirs(pathl, pathr string) bool {
 }
 
 // CalculateAllUid 计算路径下所以文件的uid
-func CalculateAllUid(rootPath string) (map[string]string, error) {
+func CalculateAllUid(rootPath string, skipRule ...string) (map[string]string, error) {
 	result := map[string]string{}
 	// 运算操作通道
 	calculateChan := make(chan chan string, 0)
@@ -154,19 +146,26 @@ func CalculateAllUid(rootPath string) (map[string]string, error) {
 			if err != nil {
 				return err
 			}
-			c := make(chan string, 0)
-			calculateChan <- c
-			c <- path
+			fileName := filepath.Base(path)
+			//规则过滤
+			for _, rule := range skipRule {
+				if ok, _ := filepath.Match(rule, fileName); ok {
+					return nil
+				}
+			}
+			wg.Add(1)
 			go func(path string) {
-				wg.Add(1)
 				defer wg.Done()
-				lock.Lock()
-				defer lock.Unlock()
+				c := make(chan string, 0)
+				calculateChan <- c
+				c <- path
 				uid := <-c
 				if uid == "" {
 					err = e.TranslateToError(e.ErrorCalculate, "Fail to calculate", path)
 					return
 				}
+				lock.Lock()
+				defer lock.Unlock()
 				result[path] = uid
 			}(path)
 		}
@@ -190,19 +189,19 @@ func CheckUid(pathUidDic map[string]string) (result map[string]string, err error
 	var lock sync.Mutex
 	var wg sync.WaitGroup
 	for path, uid := range pathUidDic {
-		c := make(chan string, 0)
-		calculateChan <- c
-		c <- path
+		wg.Add(1)
 		go func(path, uid string) {
-			wg.Add(1)
 			defer wg.Done()
-			lock.Lock()
-			defer lock.Unlock()
+			c := make(chan string, 0)
+			calculateChan <- c
+			c <- path
 			uidN := <-c
 			if uid == "" {
 				err = e.TranslateToError(e.ErrorCalculate, "Fail to calculate", path)
 				return
 			}
+			lock.Lock()
+			defer lock.Unlock()
 			if uidN != uid {
 				result[path] = uid
 			}

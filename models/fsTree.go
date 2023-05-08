@@ -5,11 +5,11 @@ import (
 	"BRGS/pkg/tools"
 	"fmt"
 	"io/fs"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"sync/atomic"
 
 	"github.com/fsnotify/fsnotify"
@@ -48,6 +48,8 @@ const (
 	FsTreeOpRecoverEnd
 	FsTreeOpArchivePrepare
 	FsTreeOpArchiveEnd
+	FsTreeOpCheckPrepare
+	FsTreeOpCheckEnd
 )
 
 // 操作
@@ -116,6 +118,44 @@ func (root *FsTreeRoot) BackupFiles() bool {
 	root.syncOp <- FsTreeOpBackupEnd
 	root.syncedDics <- synced
 	return err == nil
+}
+
+// CheckTree 检查文件是否遗漏
+func (root *FsTreeRoot) CheckTree() error {
+	// 运算操作通道
+	calculateChan := make(chan chan string, 0)
+	defer close(calculateChan)
+	// 运算操作线程池
+	go tools.CalculateUidPool(calculateChan)
+	var lock sync.Mutex
+	var wg sync.WaitGroup
+	err := filepath.Walk(root.source, func(path string, info fs.FileInfo, err error) error {
+		if !info.IsDir() {
+			if err != nil {
+				return err
+			}
+			wg.Add(1)
+			go func(path string) {
+				defer wg.Done()
+				c := make(chan string, 0)
+				calculateChan <- c
+				c <- path
+				uid := <-c
+				if uid == "" {
+					err = e.TranslateToError(e.ErrorCalculate, "Fail to calculate", path)
+					return
+				}
+				rl, _ := filepath.Rel(root.source, path)
+				keyPath := strings.ReplaceAll(rl, "\\", "/")
+				lock.Lock()
+				defer lock.Unlock()
+				root.dic[keyPath].Check(uid)
+			}(path)
+		}
+		return err
+	})
+	wg.Wait()
+	return err
 }
 
 // CreateNode 创建文件节点
@@ -191,13 +231,13 @@ func (root *FsTreeRoot) RecoverFiles() bool {
 
 // ScanFolder 扫描文件
 func (root *FsTreeRoot) ScanFolder(path, parent string) {
-	if files, err := ioutil.ReadDir(path); err == nil {
+	if files, err := os.ReadDir(path); err == nil {
 		for _, info := range files {
 			key := filepath.Join(parent, info.Name())
-			path := filepath.Join(path, info.Name())
+			subPath := filepath.Join(path, info.Name())
 			root.CreateNode(key, parent, info.IsDir())
 			if info.IsDir() {
-				root.ScanFolder(path, key)
+				root.ScanFolder(subPath, key)
 			}
 		}
 	} else {
@@ -263,7 +303,10 @@ func (root *FsTreeRoot) watchTree() {
 						root.CreateNode(path, parent, info.IsDir())
 						if info.IsDir() {
 							root.ScanFolder(event.Name, path)
-							root.WatchDirs()
+							err := root.WatchDirs()
+							if err != nil {
+								return
+							}
 						}
 					} else if event.Op == fsnotify.Write && ok {
 						//状态校验
@@ -272,7 +315,6 @@ func (root *FsTreeRoot) watchTree() {
 						} else {
 							node.Delete()
 						}
-
 					} else {
 						log.Println("其它状态")
 						log.Println(event)
@@ -300,6 +342,13 @@ func (root *FsTreeRoot) watchTree() {
 				for key := range <-root.syncedDics {
 					root.dic[key].ReverseSync()
 				}
+				root.cleanup()
+			case FsTreeOpCheckPrepare:
+				err := root.CheckTree()
+				if err != nil {
+					log.Println(e.TranslateToError(e.ErrorCalculate, err.Error()))
+				}
+			case FsTreeOpCheckEnd:
 				root.cleanup()
 			default:
 				panic(e.TranslateError(e.ErrorOperationUnsupport))

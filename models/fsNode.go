@@ -6,14 +6,27 @@ import (
 
 // FsTreeNode 树的结点
 type FsTreeNode struct {
-	path     string      //相对路径
-	parent   *FsTreeNode //父目录
-	exist    bool        //是否存在
-	isDir    bool        //是不是文件夹
-	isAlter  bool        //是否修改
-	synced   bool        //同步文件状态
-	syncType bool        //同步文件类型(是否文件夹)
-	subs     map[string]*FsTreeNode
+	path      string      //相对路径
+	parent    *FsTreeNode //父目录
+	exist     bool        //是否存在
+	isDir     bool        //是不是文件夹
+	isAlter   bool        //是否修改
+	uid       string      //uid
+	synced    bool        //同步文件状态
+	syncedUid string      //同步文件uid
+	syncType  bool        //同步文件类型(是否文件夹)
+	subs      map[string]*FsTreeNode
+}
+
+func (ftn *FsTreeNode) Check(uid string) {
+	//uid 更改
+	if ftn.uid == uid && ftn.syncedUid == uid {
+		// 与同步后的uid相同，清除同步状态
+		ftn.Sync()
+	} else {
+		ftn.uid = uid
+		ftn.Update()
+	}
 }
 
 // Delete 文件删除操作

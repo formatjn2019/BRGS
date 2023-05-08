@@ -4,7 +4,6 @@ import (
 	"BRGS/pkg/e"
 	"archive/zip"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -16,10 +15,12 @@ func RecoverFromArchive(zipPath, targetPath string) (err error) {
 	var logMessage string
 
 	zipReader, errs := zip.OpenReader(zipPath)
-	defer zipReader.Close()
-	errt := os.RemoveAll(targetPath)
+	defer func(zipReader *zip.ReadCloser) {
+		err = zipReader.Close()
+	}(zipReader)
+	errN := os.RemoveAll(targetPath)
 
-	if err = errt; err != nil {
+	if err = errN; err != nil {
 		logMessage = "解压路径错误"
 		goto errorLog
 	}
@@ -30,7 +31,7 @@ func RecoverFromArchive(zipPath, targetPath string) (err error) {
 	for _, file := range zipReader.File {
 		path := filepath.Join(targetPath, filepath.Join(strings.Split(file.Name, "/")...))
 		if file.FileInfo().IsDir() {
-			err := os.MkdirAll(path, os.ModePerm)
+			err = os.MkdirAll(path, os.ModePerm)
 			if err != nil {
 				logMessage = "创建文件夹失败"
 				goto errorLog
@@ -38,30 +39,37 @@ func RecoverFromArchive(zipPath, targetPath string) (err error) {
 			continue
 		}
 		//确保上层目录存在
-		if err := os.MkdirAll(filepath.Dir(path), os.ModePerm); err != nil {
+		if err = os.MkdirAll(filepath.Dir(path), os.ModePerm); err != nil {
 			logMessage = "创建文件夹失败"
 			goto errorLog
 		}
-		dstFile, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, file.Mode())
-		if err != nil {
+		dstFile, errN := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, file.Mode())
+		if err = errN; err != nil {
 			logMessage = "创建文件失败"
 			goto errorLog
 		}
 
-		zipedFile, err := file.Open()
-		if err != nil {
+		zipedFile, errN := file.Open()
+		if err = errN; err != nil {
 			logMessage = "读取压缩包文件失败"
 			goto errorLog
 		}
-
-		if _, err := io.Copy(dstFile, zipedFile); err != nil {
+		_, errN = io.Copy(dstFile, zipedFile)
+		if err = errN; err != nil {
 			logMessage = "解压文件失败"
 			goto errorLog
 		}
-		dstFile.Close()
-		zipedFile.Close()
+		err = dstFile.Close()
+		if err != nil {
+			logMessage = "关闭目标文件失败"
+			goto errorLog
+		}
+		err = zipedFile.Close()
+		if err != nil {
+			logMessage = "关闭zip文件失败"
+			goto errorLog
+		}
 	}
-
 	return nil
 
 errorLog:
@@ -71,12 +79,15 @@ errorLog:
 
 // WriteZip 将字典中的文件写入压缩包
 func WriteZip(fileName string, mapDic map[string]string) (err error) {
-
 	file, err := os.Create(fileName)
-	defer file.Close()
+	defer func(file *os.File) {
+		err = file.Close()
+	}(file)
 	var logMessage string
 	zipWriter := zip.NewWriter(file)
-	defer zipWriter.Close()
+	defer func(zipWriter *zip.Writer) {
+		err = zipWriter.Close()
+	}(zipWriter)
 
 	if err != nil {
 		logMessage = "压缩文件创建错误"
@@ -84,8 +95,8 @@ func WriteZip(fileName string, mapDic map[string]string) (err error) {
 	}
 
 	for path, target := range mapDic {
-		iowriter, err := zipWriter.Create(target)
-		if err != nil {
+		ioWriter, errN := zipWriter.Create(target)
+		if err = errN; err != nil {
 			if os.IsPermission(err) {
 				logMessage = "权限不足: "
 				goto errorLog
@@ -93,17 +104,21 @@ func WriteZip(fileName string, mapDic map[string]string) (err error) {
 			logMessage = "创建文件失败 %s error: %s\n"
 			goto errorLog
 		}
-		path, err := filepath.Abs(path)
-		if err != nil {
+		path, errN := filepath.Abs(path)
+		if err = errN; err != nil {
 			logMessage = "压缩文件路径错误"
 			goto errorLog
 		}
-		content, err := ioutil.ReadFile(path)
-		if err != nil {
+		content, errN := os.ReadFile(path)
+		if err = errN; err != nil {
 			logMessage = "读取文件失败" + path
 			goto errorLog
 		} else {
-			iowriter.Write(content)
+			_, errN := ioWriter.Write(content)
+			if err = errN; err != nil {
+				logMessage = "写入失败" + path
+				return err
+			}
 		}
 	}
 	return nil

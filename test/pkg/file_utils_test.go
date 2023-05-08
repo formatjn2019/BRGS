@@ -19,12 +19,24 @@ import (
 )
 
 func TestWalk(t *testing.T) {
-	tools.WalkDir("D:\\testDir")
+	walkedDic := tools.WalkDir("D:\\testf")
+	fmt.Println(walkedDic)
+	//fmt.Println(walkedDic2)
 }
 
 func TestWrite(t *testing.T) {
 	context := []map[string]string{{"标题1": "332", "标题2": "4422"}, {"标题1": "33", "标题2": "44"}}
 	utils.WriteCsvWithDict("config.csv", context)
+}
+
+func TestWriteUid(t *testing.T) {
+	pathUidDic, _ := tools.CalculateAllUid("D:\\testDir")
+	itemList := make([]map[string]string, 0, len(pathUidDic))
+	for path, uid := range pathUidDic {
+		itemList = append(itemList, map[string]string{"path": path, "uid": uid})
+	}
+	println(len(pathUidDic))
+	println(utils.WriteCsvWithDict("uid.csv", itemList))
 }
 
 func TestSaveConfig(t *testing.T) {
@@ -38,9 +50,11 @@ func TestSaveConfig(t *testing.T) {
 }
 
 func TestZip(t *testing.T) {
+	inputPath := "D:\\testf"
+	outputPath := "D:\\testf.zip"
 	start := time.Now().UnixNano()
-	dict := tools.WalkDir("D:\\testDir\\input")
-	fmt.Printf("tools.WriteZip(D:\\testDir\\archive\\test.zip, dict): %v\n", tools.WriteZip("D:\\testDir\\archive\\test.zip", dict))
+	dict := tools.WalkDir(inputPath)
+	println(tools.WriteZip(outputPath, dict))
 	end := time.Now().UnixNano()
 	fmt.Println(start)
 	fmt.Println(end)

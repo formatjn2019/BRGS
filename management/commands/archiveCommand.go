@@ -5,8 +5,8 @@ import (
 	"BRGS/management"
 	"BRGS/pkg/tools"
 	"fmt"
-	"io/ioutil"
 	"log"
+	"os"
 	"path/filepath"
 	"time"
 )
@@ -43,7 +43,7 @@ func (r *RestoreFileFromArchive) Execute() bool {
 	fmt.Println("从压缩文件还原执行")
 	archives := make([]string, 0)
 	// 待改正
-	if files, err := ioutil.ReadDir(r.BackupArchive.ArchiveDir); err == nil {
+	if files, err := os.ReadDir(r.BackupArchive.ArchiveDir); err == nil {
 		for _, info := range files {
 			if r.MatchRule.Match([]byte(info.Name())) {
 				archives = append(archives, info.Name())
