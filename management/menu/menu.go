@@ -4,13 +4,23 @@ import (
 	"BRGS/management"
 	"BRGS/management/commands"
 	"BRGS/pkg/tools"
+	"log"
 )
 
 // 菜单树
 func StartMenu() {
 	//共享数据
-
 	sd := management.ShareData{ServerChan: make(chan struct{})}
+	if true {
+		// 未完成
+		// 如有文件信息，加载,加载失败或文件信息丢失则重新扫描
+		linkedFile, err := tools.ScanFilesToDic(sd.BackupArchive.BackupDir)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		sd.LinkedBackupFile = linkedFile
+	}
 	backupCommand := &commands.BackupCommand{ShareData: &sd}
 	compressedArchive := &commands.CompressedArchiveCommand{ShareData: &sd}
 	exit := &commands.ExitCommand{ShareData: &sd}

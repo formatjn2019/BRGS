@@ -69,7 +69,7 @@ type FsTreeRoot struct {
 	events     chan fsnotify.Event
 	source     string
 	state      *FsTreeType
-	syncedDics chan map[string]bool
+	syncedDic  chan map[string]bool
 	syncInput  chan int
 	syncOp     chan int
 	syncTag    chan struct{}
@@ -97,7 +97,7 @@ func InitScanFolder(rootPath string) (*FsTreeRoot, error) {
 		events:     make(chan fsnotify.Event, 10000),
 		source:     rootPath,
 		state:      &FsTreeType{state: FsTreeWatch},
-		syncedDics: make(chan map[string]bool),
+		syncedDic:  make(chan map[string]bool),
 		syncOp:     make(chan int),
 		syncTag:    make(chan struct{}),
 	}
@@ -116,7 +116,7 @@ func (root *FsTreeRoot) BackupFiles() bool {
 	//同步完成
 	synced, err := tools.SyncFile(root.source, root.target, appendDic, deleteDic)
 	root.syncOp <- FsTreeOpBackupEnd
-	root.syncedDics <- synced
+	root.syncedDic <- synced
 	return err == nil
 }
 
@@ -225,7 +225,7 @@ func (root *FsTreeRoot) RecoverFiles() bool {
 	//同步完成
 	synced, err := tools.SyncFile(root.target, root.source, appendDic, deleteDic)
 	root.syncOp <- FsTreeOpRecoverEnd
-	root.syncedDics <- synced
+	root.syncedDic <- synced
 	return err == nil
 }
 
@@ -332,14 +332,14 @@ func (root *FsTreeRoot) watchTree() {
 			case FsTreeOpBackupPrepare:
 				root.getSyncFiles()
 			case FsTreeOpBackupEnd:
-				for key := range <-root.syncedDics {
+				for key := range <-root.syncedDic {
 					root.dic[key].Sync()
 				}
 				root.cleanup()
 			case FsTreeOpRecoverPrepare:
 				root.getReverseSyncFiles()
 			case FsTreeOpRecoverEnd:
-				for key := range <-root.syncedDics {
+				for key := range <-root.syncedDic {
 					root.dic[key].ReverseSync()
 				}
 				root.cleanup()
@@ -403,8 +403,14 @@ func (root *FsTreeRoot) WatchDirs(exceptRule ...string) error {
 		if v.isDir && v.exist {
 			fullPath := filepath.Join(root.source, k)
 			log.Println("监控目录", k, fullPath)
-			root.watcher.Remove(fullPath)
-			root.watcher.Add(fullPath)
+			err := root.watcher.Remove(fullPath)
+			if err != nil {
+				return err
+			}
+			err = root.watcher.Add(fullPath)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	return nil

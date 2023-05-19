@@ -23,7 +23,7 @@ import (
 const maxSilceSize = 20 * 1024 * 1024
 
 // SyncFile 文件同步
-func SyncFile(pathSorce, pathTarget string, addDic, delDic map[string]bool) (synced map[string]bool, err error) {
+func SyncFile(pathSource, pathTarget string, addDic, delDic map[string]bool) (synced map[string]bool, err error) {
 	synced = map[string]bool{}
 	log.Println("同步开始")
 	// 文件及文件夹删除
@@ -56,12 +56,12 @@ func SyncFile(pathSorce, pathTarget string, addDic, delDic map[string]bool) (syn
 	for file, isDir := range addDic {
 		//只对文件进行操作
 		if !isDir {
-			fi, err := os.Stat(filepath.Join(pathSorce, file))
+			fi, err := os.Stat(filepath.Join(pathSource, file))
 			if err != nil {
 				err = e.TranslateToError(e.ErrorRead, file, err.Error())
 				goto errorLog
 			}
-			cont, err := os.ReadFile(filepath.Join(pathSorce, file))
+			cont, err := os.ReadFile(filepath.Join(pathSource, file))
 			if err != nil {
 				err = e.TranslateToError(e.ErrorRead, file, err.Error())
 				goto errorLog
@@ -100,30 +100,30 @@ func WalkDir(root string) map[string]string {
 }
 
 // CompareDirs 文件对比
-func CompareDirs(pathl, pathr string) bool {
+func CompareDirs(pathL, pathR string) bool {
 	result := true
-	lst, _ := os.Stat(pathl)
-	rst, _ := os.Stat(pathr)
+	lst, _ := os.Stat(pathL)
+	rst, _ := os.Stat(pathR)
 	//文件不相同情况
-	if !utils.CompareFile(pathl, pathr) {
+	if !utils.CompareFile(pathL, pathR) {
 		fmt.Printf("对比失败 %s %s\n", lst, rst)
-		fmt.Printf("路径分别为 %s %s\n", pathl, pathr)
+		fmt.Printf("路径分别为 %s %s\n", pathL, pathR)
 		return false
 	} else {
-		fmt.Printf("%s %s 对比成功\n", pathl, pathr)
+		fmt.Printf("%s %s 对比成功\n", pathL, pathR)
 	}
 	if lst != nil && rst != nil && lst.IsDir() && rst.IsDir() {
 		next := map[string]bool{}
-		files, _ := os.ReadDir(pathl)
+		files, _ := os.ReadDir(pathL)
 		for _, file := range files {
 			next[file.Name()] = true
 		}
-		files, _ = os.ReadDir(pathr)
+		files, _ = os.ReadDir(pathR)
 		for _, file := range files {
 			next[file.Name()] = true
 		}
 		for name := range next {
-			if !CompareDirs(filepath.Join(pathl, name), filepath.Join(pathr, name)) {
+			if !CompareDirs(filepath.Join(pathL, name), filepath.Join(pathR, name)) {
 				result = false
 			}
 		}
@@ -233,24 +233,84 @@ func CalculateUidPool(calculateChan chan chan string) {
 	}
 }
 
+func ScanFilesToDic(paths ...string) (linkedFilesDic map[string]map[string]fs.FileInfo, err error) {
+	// 运算操作通道
+	calculateChan := make(chan chan string, 0)
+	defer close(calculateChan)
+	// 运算操作线程池
+	go CalculateUidPool(calculateChan)
+	var lock sync.Mutex
+	var wg sync.WaitGroup
+	for _, rootPath := range paths {
+		err = filepath.Walk(rootPath, func(path string, info fs.FileInfo, err error) error {
+			if !info.IsDir() {
+				if err != nil {
+					return err
+				}
+				wg.Add(1)
+				go func(path string, info fs.FileInfo) {
+					defer wg.Done()
+					c := make(chan string, 0)
+					calculateChan <- c
+					c <- path
+					uid := <-c
+					if uid == "" {
+						err = e.TranslateToError(e.ErrorCalculate, "Fail to calculate", path)
+						return
+					}
+					lock.Lock()
+					defer lock.Unlock()
+					if linkedFiles, ok := linkedFilesDic[uid]; !ok {
+						//第一次出现，记录
+						linkedFilesDic[uid] = map[string]fs.FileInfo{path: info}
+					} else {
+						//判断是否和已有文件是同一文件的硬链接
+						for _, linkedInfo := range linkedFiles {
+							if os.SameFile(linkedInfo, info) {
+								return
+							}
+						}
+						//非已记录文件，记录
+						linkedFilesDic[uid][path] = info
+					}
+				}(path, info)
+			}
+			return err
+		})
+		wg.Wait()
+		if err != nil {
+			return nil, err
+		}
+	}
+	return
+}
+
+// SyncAllFileWithHardLink 通过硬链接方式同步所有文件
+func SyncAllFileWithHardLink(src, dst string, filesDic map[string]string, linkedFilesDic map[string]map[string]fs.FileInfo) error {
+	var lock sync.Locker
+	for path, uid := range filesDic {
+		srcPath, dstPath := filepath.Join(src, path), filepath.Join(dst, path)
+		err := SyncFileWithHardLink(uid, srcPath, dstPath, linkedFilesDic, lock)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // SyncFileWithHardLink 同步文件
 // 非新文件时，采用硬链接形式记录
-func SyncFileWithHardLink(uid, oldFilePath, newFilePath string, newInfo fs.FileInfo, linkedFilesDic map[string]map[string]fs.FileInfo, lock sync.Locker) (e error) {
+func SyncFileWithHardLink(uid, oldFilePath, newFilePath string, linkedFilesDic map[string]map[string]fs.FileInfo, lock sync.Locker) (e error) {
 	lock.Lock()
 	defer lock.Unlock()
 	//判断是否第一次出现该文件
 	if linkedFiles, ok := linkedFilesDic[uid]; !ok {
-		//第一次出现，记录
-		linkedFilesDic[uid] = map[string]fs.FileInfo{newFilePath: newInfo}
+		//第一次出现，拷贝
 		_, err := copyFile(oldFilePath, newFilePath)
+		info, _ := os.Stat(newFilePath)
+		linkedFilesDic[uid] = map[string]fs.FileInfo{newFilePath: info}
 		return err
 	} else {
-		//判断是重复文件的硬链接
-		for _, oldInfo := range linkedFiles {
-			if os.SameFile(newInfo, oldInfo) {
-				return nil
-			}
-		}
 		tempPath, idx := newFilePath+"_0", 1
 		//生成中转文件名
 		for _, err := os.Stat(tempPath); err == nil; idx++ {
@@ -261,17 +321,13 @@ func SyncFileWithHardLink(uid, oldFilePath, newFilePath string, newInfo fs.FileI
 		for linkedFilePath, _ := range linkedFiles {
 			//链接成功，进行操作，返回
 			if err := os.Link(linkedFilePath, tempPath); err == nil {
-				println("relink", newFilePath)
-				err = os.Remove(newFilePath)
-				if err != nil {
-					return err
-				}
 				return os.Rename(tempPath, newFilePath)
 			}
 		}
 		//尝试生成硬链接失败,将该文件加入列表
-		linkedFiles[newFilePath] = newInfo
 		_, err := copyFile(oldFilePath, newFilePath)
+		info, _ := os.Stat(newFilePath)
+		linkedFiles[newFilePath] = info
 		return err
 	}
 }

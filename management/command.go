@@ -2,6 +2,7 @@ package management
 
 import (
 	"BRGS/models"
+	"io/fs"
 	"regexp"
 )
 
@@ -13,8 +14,9 @@ type Command interface {
 
 // ShareData 数据共享
 type ShareData struct {
-	BackupArchive BackupArchive
-	Tree          models.FsTreeRoot
-	MatchRule     *regexp.Regexp
-	ServerChan    chan struct{}
+	BackupArchive    BackupArchive
+	Tree             models.FsTreeRoot
+	LinkedBackupFile map[string]map[string]fs.FileInfo
+	MatchRule        *regexp.Regexp
+	ServerChan       chan struct{}
 }

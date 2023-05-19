@@ -20,7 +20,11 @@ import (
 
 func TestWalk(t *testing.T) {
 	walkedDic := tools.WalkDir("D:\\testf")
-	fmt.Println(walkedDic)
+	fmt.Println(len(walkedDic))
+	for k, v := range walkedDic {
+		println(k, v)
+		break
+	}
 	//fmt.Println(walkedDic2)
 }
 

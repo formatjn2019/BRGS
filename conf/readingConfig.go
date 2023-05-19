@@ -11,6 +11,7 @@ import (
 type ExcelConfig struct {
 	ArchiveDir      string
 	ArchiveInterval string
+	BackupDir       string
 	Name            string
 	SyncInterval    string
 	TempDir         string
@@ -28,10 +29,12 @@ type CommandName struct {
 	CompressedArchive      string
 	RestoreFileFromArchive string
 	// 备份命令
-	BackupCommand     string
-	ResetBackup       string
-	RestoreBackup     string
-	StopBackupCommand string
+	BackupCommand                   string
+	ResetBackup                     string
+	RestoreBackup                   string
+	StopBackupCommand               string
+	BackupFilesWithHardLinkCommand  string
+	RestoreFilesWithHardLinkCommand string
 	// 备份控制命令
 	AutoBackupCommand          string
 	ManualAndAutoBackupCommand string
