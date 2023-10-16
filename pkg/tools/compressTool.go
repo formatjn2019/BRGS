@@ -3,12 +3,23 @@ package tools
 import (
 	"BRGS/pkg/e"
 	"archive/zip"
+	"fmt"
 	"io"
 	"log"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
+	"time"
 )
+
+func GenerateNameByTime(name string) string {
+	return fmt.Sprintf("%s_%s", name, time.Now().Format("20060102_150405"))
+}
+
+func GenerateRule(name string) *regexp.Regexp {
+	return regexp.MustCompile(name + `_20\d{6}_\d{6}(.zip)?`)
+}
 
 // RecoverFromArchive 从压缩包中还原文件
 func RecoverFromArchive(zipPath, targetPath string) (err error) {
@@ -18,7 +29,7 @@ func RecoverFromArchive(zipPath, targetPath string) (err error) {
 	defer func(zipReader *zip.ReadCloser) {
 		err = zipReader.Close()
 	}(zipReader)
-	errN := os.RemoveAll(targetPath)
+	errN := removeSub(targetPath)
 
 	if err = errN; err != nil {
 		logMessage = "解压路径错误"

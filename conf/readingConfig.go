@@ -27,6 +27,7 @@ type CommandName struct {
 	GenerateConfigDefaultCommand string
 	// 压缩与解压命令
 	CompressedArchive      string
+	HardLinkArchive        string
 	RestoreFileFromArchive string
 	// 备份命令
 	BackupCommand                   string
@@ -48,7 +49,8 @@ type CommandName struct {
 var CommandNames = &CommandName{}
 
 type Server struct {
-	Port string
+	ServerPort string
+	WebPort    string
 }
 
 var ServerConf = &Server{}
@@ -60,6 +62,7 @@ func init() {
 		fmt.Printf(e.TranslateToError(e.ErrorReadConfig, "Fail to read file").Error())
 		os.Exit(1)
 	}
+
 	sectionArgMap := map[string]interface{}{
 		"excel_head_ch":        ExcelTranslateConf,
 		"excel_default_tip_ch": ExcelTipConf,

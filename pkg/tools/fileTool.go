@@ -132,7 +132,7 @@ func CompareDirs(pathL, pathR string) bool {
 }
 
 // CalculateAllUid 计算路径下所以文件的uid
-func CalculateAllUid(rootPath string, skipRule ...string) (map[string]string, error) {
+func CalculateAllUid(rootPath string, abstractPath bool, skipRule ...string) (map[string]string, error) {
 	result := map[string]string{}
 	// 运算操作通道
 	calculateChan := make(chan chan string, 0)
@@ -166,7 +166,12 @@ func CalculateAllUid(rootPath string, skipRule ...string) (map[string]string, er
 				}
 				lock.Lock()
 				defer lock.Unlock()
-				result[path] = uid
+				if abstractPath {
+					result[path] = uid
+				} else {
+					pathKey, _ := filepath.Rel(rootPath, path)
+					result[pathKey] = uid
+				}
 			}(path)
 		}
 		return err
@@ -237,6 +242,7 @@ func ScanFilesToDic(paths ...string) (linkedFilesDic map[string]map[string]fs.Fi
 	// 运算操作通道
 	calculateChan := make(chan chan string, 0)
 	defer close(calculateChan)
+	linkedFilesDic = map[string]map[string]fs.FileInfo{}
 	// 运算操作线程池
 	go CalculateUidPool(calculateChan)
 	var lock sync.Mutex
@@ -287,10 +293,10 @@ func ScanFilesToDic(paths ...string) (linkedFilesDic map[string]map[string]fs.Fi
 
 // SyncAllFileWithHardLink 通过硬链接方式同步所有文件
 func SyncAllFileWithHardLink(src, dst string, filesDic map[string]string, linkedFilesDic map[string]map[string]fs.FileInfo) error {
-	var lock sync.Locker
+	var lock sync.Mutex
 	for path, uid := range filesDic {
 		srcPath, dstPath := filepath.Join(src, path), filepath.Join(dst, path)
-		err := SyncFileWithHardLink(uid, srcPath, dstPath, linkedFilesDic, lock)
+		err := SyncFileWithHardLink(uid, srcPath, dstPath, linkedFilesDic, &lock)
 		if err != nil {
 			return err
 		}
@@ -303,6 +309,7 @@ func SyncAllFileWithHardLink(src, dst string, filesDic map[string]string, linked
 func SyncFileWithHardLink(uid, oldFilePath, newFilePath string, linkedFilesDic map[string]map[string]fs.FileInfo, lock sync.Locker) (e error) {
 	lock.Lock()
 	defer lock.Unlock()
+	createParentDir(newFilePath)
 	//判断是否第一次出现该文件
 	if linkedFiles, ok := linkedFilesDic[uid]; !ok {
 		//第一次出现，拷贝
@@ -376,6 +383,16 @@ func calculateLargeFileUid(filePath string) (uid string, e error) {
 	return hex.EncodeToString(append(md5Hash.Sum(nil)[:], sha1Hash.Sum(nil)[:]...)), e
 }
 
+func createParentDir(path string) {
+	dstDir := filepath.Dir(path)
+	if stat, err := os.Stat(dstDir); err != nil || stat == nil {
+		err := os.MkdirAll(dstDir, 0755)
+		if err != nil {
+			panic(err)
+		}
+	}
+}
+
 // 文件复制
 func copyFile(src, dst string) (written int64, err error) {
 	file1, err := os.Open(src)
@@ -393,4 +410,61 @@ func copyFile(src, dst string) (written int64, err error) {
 		err = file2.Close()
 	}(file2)
 	return io.Copy(file2, file1)
+}
+
+// 移除子文件
+func removeSub(path string) error {
+	subs, err := os.ReadDir(path)
+	if err != nil {
+		return err
+	}
+	for _, sub := range subs {
+		if err := os.RemoveAll(filepath.Join(path, sub.Name())); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func CloneDir(src, dst string) error {
+	stat, err := os.Stat(dst)
+	// 目标文件夹下如存在文件，则清空子文件夹
+	if err == nil && stat.IsDir() {
+		err = removeSub(dst)
+		if err != nil {
+			return err
+		}
+	}
+	return cloneFileTree(src, dst)
+}
+
+// CloneFileTree 递归拷贝
+func cloneFileTree(src, dst string) error {
+	info, err := os.Stat(src)
+	if err != nil {
+		return err
+	}
+	if info.IsDir() {
+		err = os.MkdirAll(dst, os.ModePerm)
+		if err != nil {
+			return err
+		}
+		subs, err := os.ReadDir(src)
+		if err != nil {
+			return err
+		}
+		for _, info := range subs {
+			s, d := filepath.Join(src, info.Name()), filepath.Join(dst, info.Name())
+			if info.IsDir() {
+				if err = cloneFileTree(s, d); err != nil {
+					return err
+				}
+			} else {
+				if _, err = copyFile(s, d); err != nil {
+					return err
+				}
+			}
+		}
+	}
+	return nil
 }

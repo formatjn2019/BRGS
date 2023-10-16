@@ -70,6 +70,11 @@ func (f *FsTreeType) ChangeToRecover() (int, bool) {
 	return f.changeState(FsTreeRecover)
 }
 
+// ChangeToArchive 切换为存档状态
+func (f *FsTreeType) ChangeToArchive() (int, bool) {
+	return f.changeState(FsTreeArchive)
+}
+
 // Translate 翻译当前状态
 func (f *FsTreeType) Translate(state int) string {
 	switch state {

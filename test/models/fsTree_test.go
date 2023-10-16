@@ -67,7 +67,7 @@ func TestOs(t *testing.T) {
 	// fmt.Println(err)
 	fmt.Println(time.Now())
 	os.RemoveAll(TEMP_DIR)
-	os.MkdirAll(TEMP_DIR, os.ModeDir)
+	os.MkdirAll(TEMP_DIR, 0750)
 	OsOperation("cf", filepath.Join(TEMP_DIR, "test.txt"))
 	OsOperation("up", filepath.Join(TEMP_DIR, "test.txt"))
 	OsOperation("md", filepath.Join(TEMP_DIR, "tdr"))
@@ -118,7 +118,7 @@ func OsOperation(operation string, path ...string) {
 		os.MkdirAll(path[0], os.ModeDir)
 		//create file
 	case "cf":
-		ioutil.WriteFile(path[0], []byte("create file"), 0644)
+		os.WriteFile(path[0], []byte("create file"), 0644)
 		//delete
 	case "rm":
 		//update
@@ -128,7 +128,7 @@ func OsOperation(operation string, path ...string) {
 		p := make([]byte, 100)
 		rand.Read(p)
 		origin = append(origin, p[rand.Intn(90):]...)
-		ioutil.WriteFile(path[0], origin, 0644)
+		os.WriteFile(path[0], origin, 0644)
 	case "mv":
 		os.Rename(path[0], path[1])
 	}

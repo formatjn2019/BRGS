@@ -32,8 +32,7 @@ func CreateFsTreeRoot(inputDir, outputDir string) *FsTreeRoot {
 			return nil
 		}
 	}
-
-	ftn.WatchDirs()
+	ftn.WatchDirs(inputDir)
 	ftn.Watch()
 	b := ftn.BackupFiles()
 	fmt.Println(b)
@@ -57,6 +56,7 @@ const (
 	FsTreeOpBackup = 3<<iota | 1
 	FsTreeOpRecover
 	FsTreeOpArchive
+	FsTreeOpWatch
 )
 
 // FsTreeRoot 树的根
@@ -120,6 +120,12 @@ func (root *FsTreeRoot) BackupFiles() bool {
 	return err == nil
 }
 
+func (root *FsTreeRoot) Check() error {
+	root.syncOp <- FsTreeOpCheckPrepare
+	root.syncOp <- FsTreeOpCheckPrepare
+	return nil
+}
+
 // CheckTree 检查文件是否遗漏
 func (root *FsTreeRoot) CheckTree() error {
 	// 运算操作通道
@@ -149,7 +155,10 @@ func (root *FsTreeRoot) CheckTree() error {
 				keyPath := strings.ReplaceAll(rl, "\\", "/")
 				lock.Lock()
 				defer lock.Unlock()
-				root.dic[keyPath].Check(uid)
+				if node, ok := root.dic[keyPath]; ok {
+					node.Check(uid)
+				}
+
 			}(path)
 		}
 		return err
@@ -189,6 +198,13 @@ func (root *FsTreeRoot) CreateTargetDir(target string) error {
 	return os.MkdirAll(target, fs.ModeDir)
 }
 
+func (root *FsTreeRoot) State() int {
+	return root.state.State()
+}
+func (root *FsTreeRoot) StateString() string {
+	return root.state.Translate(root.state.State())
+}
+
 // GetNode 获取节点
 func (root *FsTreeRoot) GetNode(key string) *FsTreeNode {
 	return root.dic[key]
@@ -200,12 +216,49 @@ func (root *FsTreeRoot) CommandInput(operation int) (err error) {
 	case FsTreeOpBackup:
 		if state, ok := root.state.ChangeToBackup(); ok {
 			log.Println("切换到备份状态")
+			files := root.BackupFiles()
+			fmt.Println(files)
+			_, ok2 := root.state.ChangeToWatch()
+			if ok2 {
+				log.Println("切换到监控状态")
+			} else {
+				err = e.TranslateToError(e.ErrorSyncChangeStats, "当前状态为"+root.state.Translate(state))
+				goto errorLog
+			}
 		} else {
 			err = e.TranslateToError(e.ErrorSyncChangeStats, "当前状态为"+root.state.Translate(state))
 			goto errorLog
 		}
+
 	case FsTreeOpRecover:
+		if state, ok := root.state.ChangeToRecover(); ok {
+			log.Println("切换到还原状态")
+			root.RecoverFiles()
+			_, ok2 := root.state.ChangeToWatch()
+			if ok2 {
+				log.Println("切换到监控状态")
+			} else {
+				err = e.TranslateToError(e.ErrorSyncChangeStats, "当前状态为"+root.state.Translate(state))
+				goto errorLog
+			}
+		} else {
+			err = e.TranslateToError(e.ErrorSyncChangeStats, "当前状态为"+root.state.Translate(state))
+			goto errorLog
+		}
 	case FsTreeOpArchive:
+		if state, ok := root.state.ChangeToArchive(); ok {
+			log.Println("切换到存档状态")
+		} else {
+			err = e.TranslateToError(e.ErrorSyncChangeStats, "当前状态为"+root.state.Translate(state))
+			goto errorLog
+		}
+	case FsTreeOpWatch:
+		if state, ok := root.state.ChangeToWatch(); ok {
+			log.Println("切换到监控状态")
+		} else {
+			err = e.TranslateToError(e.ErrorSyncChangeStats, "当前状态为"+root.state.Translate(state))
+			goto errorLog
+		}
 	default:
 		panic(e.TranslateError(e.ErrorOperationUnsupport))
 	}
@@ -233,7 +286,7 @@ func (root *FsTreeRoot) RecoverFiles() bool {
 func (root *FsTreeRoot) ScanFolder(path, parent string) {
 	if files, err := os.ReadDir(path); err == nil {
 		for _, info := range files {
-			key := filepath.Join(parent, info.Name())
+			key := strings.ReplaceAll(filepath.Join(parent, info.Name()), "\\", "/")
 			subPath := filepath.Join(path, info.Name())
 			root.CreateNode(key, parent, info.IsDir())
 			if info.IsDir() {
@@ -405,7 +458,7 @@ func (root *FsTreeRoot) WatchDirs(exceptRule ...string) error {
 			log.Println("监控目录", k, fullPath)
 			err := root.watcher.Remove(fullPath)
 			if err != nil {
-				return err
+				fmt.Println(root.watcher.WatchList())
 			}
 			err = root.watcher.Add(fullPath)
 			if err != nil {

@@ -4,69 +4,25 @@ import (
 	"BRGS/management"
 	"BRGS/management/commands"
 	"BRGS/pkg/tools"
-	"log"
 )
 
-// 菜单树
-func StartMenu() {
-	//共享数据
-	sd := management.ShareData{ServerChan: make(chan struct{})}
-	if true {
-		// 未完成
-		// 如有文件信息，加载,加载失败或文件信息丢失则重新扫描
-		linkedFile, err := tools.ScanFilesToDic(sd.BackupArchive.BackupDir)
-		if err != nil {
-			log.Println(err)
-			return
-		}
-		sd.LinkedBackupFile = linkedFile
-	}
-	backupCommand := &commands.BackupCommand{ShareData: &sd}
-	compressedArchive := &commands.CompressedArchiveCommand{ShareData: &sd}
-	exit := &commands.ExitCommand{ShareData: &sd}
-	generateConfigDefaultCommand := &commands.GenerateConfigDefaultCommand{ShareData: &sd}
-	readConfigCommand := &commands.ReadConfigCommand{ShareData: &sd}
-	restoreBackup := &commands.RestoreBackup{ShareData: &sd}
-	restoreFileFromArchive := &commands.RestoreFileFromArchive{ShareData: &sd}
-	resetBackup := &commands.ResetBackup{ShareData: &sd}
-	stopBackupCommand := &commands.StopBackupCommand{ShareData: &sd}
-	manualAndAutoBackupCommand := &commands.ManualAndAutoBackupCommand{ShareData: &sd}
-	autoBackupCommand := &commands.AutoBackupCommand{ShareData: &sd}
-	manualBackupCommand := &commands.ManualBackupCommand{ShareData: &sd}
-	startServerCommand := &commands.StartServerCommand{ShareData: &sd}
-	stopServerCommand := &commands.StopServerCommand{ShareData: &sd}
+type step struct {
+	prefix    *[]string
+	next      *[]string
+	cmd       management.Command
+	consoleDo func()
+}
 
+func ConfigMenu() {
+	exit := &commands.ExitCommand{}
+	generateConfigDefaultCommand := &commands.GenerateConfigDefaultCommand{}
+	readConfigCommand := &commands.ReadConfigCommand{}
 	menuConfig := []string{readConfigCommand.String(), generateConfigDefaultCommand.String(), exit.String()}
-	menuControl := []string{backupCommand.String(), compressedArchive.String(), restoreBackup.String(), restoreFileFromArchive.String(), resetBackup.String(), stopBackupCommand.String()}
-	menuType := []string{autoBackupCommand.String(), manualBackupCommand.String(), manualAndAutoBackupCommand.String(), startServerCommand.String(), stopServerCommand.String()}
-	menuAutoBackup := []string{stopBackupCommand.String()}
-
-	closeServer := func() {
-		println("close server")
-	}
-	type Step struct {
-		prefix   *[]string
-		next     *[]string
-		cmd      management.Command
-		concelDo func()
-	}
-	cmdDic := map[string]Step{
-		backupCommand.String():                {prefix: &menuControl, next: &menuControl, cmd: backupCommand},
-		compressedArchive.String():            {prefix: &menuControl, next: &menuControl, cmd: compressedArchive},
+	cmdDic := map[string]step{
 		exit.String():                         {prefix: &menuConfig, next: nil, cmd: exit},
 		generateConfigDefaultCommand.String(): {prefix: &menuConfig, next: &menuConfig, cmd: generateConfigDefaultCommand},
-		readConfigCommand.String():            {prefix: &menuConfig, next: &menuType, cmd: readConfigCommand},
-		restoreBackup.String():                {prefix: &menuControl, next: &menuControl, cmd: restoreBackup},
-		restoreFileFromArchive.String():       {prefix: &menuControl, next: &menuControl, cmd: restoreFileFromArchive},
-		resetBackup.String():                  {prefix: &menuConfig, next: &menuControl, cmd: resetBackup},
-		stopBackupCommand.String():            {prefix: &menuControl, next: &menuConfig, cmd: stopBackupCommand, concelDo: closeServer},
-		manualAndAutoBackupCommand.String():   {prefix: &menuConfig, next: &menuControl, cmd: manualAndAutoBackupCommand, concelDo: closeServer},
-		autoBackupCommand.String():            {prefix: &menuConfig, next: &menuAutoBackup, cmd: autoBackupCommand, concelDo: closeServer},
-		manualBackupCommand.String():          {prefix: &menuConfig, next: &menuControl, cmd: manualBackupCommand, concelDo: closeServer},
-		startServerCommand.String():           {prefix: &menuConfig, next: &menuControl, cmd: startServerCommand, concelDo: closeServer},
-		stopServerCommand.String():            {prefix: &menuConfig, next: &menuControl, cmd: stopBackupCommand, concelDo: closeServer},
+		readConfigCommand.String():            {prefix: &menuConfig, next: &menuConfig, cmd: readConfigCommand},
 	}
-
 	menu := &menuConfig
 	for {
 		if index := tools.CommandMenu(false, *menu...); index == -1 {
@@ -78,8 +34,49 @@ func StartMenu() {
 				menu = cmd.next
 			} else {
 				menu = cmd.prefix
-				if cmd.concelDo != nil {
-					cmd.concelDo()
+				if cmd.consoleDo != nil {
+					cmd.consoleDo()
+				}
+			}
+		}
+	}
+}
+
+// ControlMenu 菜单树
+func ControlMenu() {
+	backupCommand := &commands.BackupCommand{}
+	restoreBackup := &commands.RestoreBackup{}
+	compressedArchive := &commands.CompressedArchiveCommand{}
+	hardlinkArchive := &commands.BackupFilesWithHardLinkCommand{}
+	restoreFileFromArchive := &commands.RestoreFileFromArchive{}
+	resetBackup := &commands.ResetBackup{}
+	exit := &commands.ExitCommand{}
+
+	menuControl := []string{backupCommand.String(), compressedArchive.String(), restoreBackup.String(), restoreFileFromArchive.String(), resetBackup.String(), hardlinkArchive.String()}
+
+	cmdDic := map[string]step{
+		backupCommand.String():          {prefix: &menuControl, next: &menuControl, cmd: backupCommand},
+		compressedArchive.String():      {prefix: &menuControl, next: &menuControl, cmd: compressedArchive},
+		exit.String():                   {prefix: &menuControl, next: nil, cmd: exit},
+		hardlinkArchive.String():        {prefix: &menuControl, next: &menuControl, cmd: hardlinkArchive},
+		restoreBackup.String():          {prefix: &menuControl, next: &menuControl, cmd: restoreBackup},
+		restoreFileFromArchive.String(): {prefix: &menuControl, next: &menuControl, cmd: restoreFileFromArchive},
+		resetBackup.String():            {prefix: &menuControl, next: &menuControl, cmd: resetBackup},
+	}
+
+	menu := &menuControl
+	for {
+		if index := tools.CommandMenu(false, *menu...); index == -1 {
+			menu = &menuControl
+		} else {
+			cmd := cmdDic[(*menu)[index]]
+			// 根据命令执行成败决定下级菜单
+			if cmd.cmd.Execute() {
+				menu = cmd.next
+			} else {
+				menu = cmd.prefix
+				if cmd.consoleDo != nil {
+					cmd.consoleDo()
 				}
 			}
 		}

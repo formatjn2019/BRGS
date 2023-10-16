@@ -3,23 +3,16 @@ package commands
 import (
 	"BRGS/conf"
 	"BRGS/management"
-	"BRGS/models"
 	"fmt"
 )
 
 // BackupCommand 备份命令
 type BackupCommand struct {
-	*management.ShareData
 }
 
 func (b *BackupCommand) Execute() bool {
-	if b.Tree.BackupFiles() {
-		fmt.Println("同步执行成功")
-		return true
-	} else {
-		fmt.Println("同步执行失败")
-		return false
-	}
+	fmt.Println("同步中转执行")
+	return management.MonServer.Backup()
 }
 
 func (b *BackupCommand) String() string {
@@ -28,13 +21,11 @@ func (b *BackupCommand) String() string {
 
 // ResetBackup 重置备份命令
 type ResetBackup struct {
-	*management.ShareData
 }
 
 func (r *ResetBackup) Execute() bool {
-	r.Tree = *models.CreateFsTreeRoot(r.BackupArchive.WatchDir, r.BackupArchive.TempDir)
 	fmt.Println("重置执行")
-	return true
+	return management.MonServer.Scanning()
 }
 
 func (r *ResetBackup) String() string {
@@ -43,11 +34,10 @@ func (r *ResetBackup) String() string {
 
 // RestoreBackup 还原命令
 type RestoreBackup struct {
-	*management.ShareData
 }
 
 func (r *RestoreBackup) Execute() bool {
-	if r.Tree.RecoverFiles() {
+	if management.MonServer.Recover() {
 		fmt.Println("同步执行成功")
 		return true
 	} else {
@@ -62,7 +52,6 @@ func (r *RestoreBackup) String() string {
 
 // StopBackupCommand 停止备份命令
 type StopBackupCommand struct {
-	*management.ShareData
 }
 
 func (b *StopBackupCommand) Execute() bool {

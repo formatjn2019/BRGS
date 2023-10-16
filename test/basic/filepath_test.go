@@ -3,6 +3,7 @@ package basic
 import (
 	"fmt"
 	"io/fs"
+	"os"
 	"path/filepath"
 	"testing"
 )
@@ -21,4 +22,14 @@ func TestFilepath(t *testing.T) {
 	for _, path := range skipList {
 		println(path)
 	}
+}
+
+func TestGetPath(t *testing.T) {
+	filepath.Base("D:\\testDir")
+	err := os.MkdirAll("D:\\testDir", os.ModePerm)
+	fmt.Println(err)
+	fmt.Println(os.Stat("d:/22g"))
+	println(filepath.Rel("D:\\testDir", "D:\\testDir\\input.text"))
+	println(filepath.Dir("D:\\testDir\\input.text"))
+	println(filepath.Ext("D:\\testDir\\input.text"))
 }

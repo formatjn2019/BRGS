@@ -9,57 +9,31 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"os"
 	"strconv"
+	"strings"
 )
 
 // ReadConfigCommand 读取命令
 type ReadConfigCommand struct {
-	*management.ShareData
 }
 
 func (r *ReadConfigCommand) Execute() bool {
 	configs, err := utils.ReadCsvAsDictAndTranslate("config.csv", tools.DictReverse(management.ExcelHeadTranslateDic))
-
-	// 非空核验
-	notNullCheck := tools.GenerateNotNullCheck()
-	// 路径核验
-	pathCheck := tools.GeneratePathCheck()
-	//通用检查
-	checkMap := map[string][]tools.Check{
-		// "名称"
-		"name": {notNullCheck},
-		// "存档目录"
-		"watchDir": {notNullCheck, pathCheck},
-		// "中转文件目录"
-		"tempDir": {pathCheck},
-		// "压缩文件存储目录"
-		"archiveDir": {notNullCheck, pathCheck},
-		// "自动存档间隔(分钟)"
-		"archiveInterval": {notNullCheck, tools.GenerateRangeCheck(true, 2, 120)},
-		// "自动同步间隔(分钟)"
-		"syncInterval": {notNullCheck, tools.GenerateRangeCheck(true, 1, 30)},
-	}
-	println(checkMap)
 	rules := make([]management.BackupArchive, 0)
 	names := map[string]bool{}
 	if err == nil {
 		for line, config := range configs {
 			fmt.Println(line+1, "\t", config)
-			//通用规则检查
-			for row := 0; row < len(management.ExcelHeadOrder); row++ {
-				text := config[management.ExcelHeadOrder[row]]
-				for _, check := range checkMap[management.ExcelHeadOrder[row]] {
-					if err = check(text); err != nil {
-						err = errors.New(fmt.Sprintf("检查%d行\t%d列出错,内容为:%s,错误为：%s", line+2, row+1, text, err))
-						goto errorLog
-					}
-				}
+			// 结构转换
+			archiveInterval, te := strconv.Atoi(config["archiveInterval"])
+			if te != nil {
+				err = errors.New("存档间隔非数字")
+				goto errorLog
 			}
-			//隐藏规则检查
-			archiveInterval, _ := strconv.Atoi(config["archiveInterval"])
-			syncInterval, _ := strconv.Atoi(config["syncInterval"])
-			if archiveInterval < syncInterval {
-				err = e.TranslateToError(e.ErrorInterval, fmt.Sprintf("检查%d行出错", line+2))
+			syncInterval, te := strconv.Atoi(config["syncInterval"])
+			if te != nil {
+				err = errors.New("同步间隔非数字")
 				goto errorLog
 			}
 			rule := management.BackupArchive{
@@ -70,7 +44,11 @@ func (r *ReadConfigCommand) Execute() bool {
 				ArchiveInterval: archiveInterval * 60,
 				SyncInterval:    syncInterval * 60,
 			}
-			fmt.Println(rule.String())
+
+			if checkErrors := rule.CheckConfig(); len(checkErrors) > 0 {
+				err = errors.New(fmt.Sprintf("检查%d行出错\t", line+2) + strings.Join(checkErrors, "\n"))
+				goto errorLog
+			}
 			if ok, _ := names[rule.Name]; ok {
 				err = e.TranslateToError(e.ErrorSameName, fmt.Sprintf("检查%d行出错", line+2))
 				goto errorLog
@@ -78,16 +56,22 @@ func (r *ReadConfigCommand) Execute() bool {
 			names[rule.Name] = true
 			rules = append(rules, rule)
 		}
-		configStr := make([]string, 0)
+		//生成命令
 		for _, rule := range rules {
-			configStr = append(configStr, rule.String())
+			hd := `.\BRGS.exe `
+			tail := fmt.Sprintf(`-n %s -wd %s -td %s -ad %s -ai %d -si %d`, rule.Name, rule.WatchDir, rule.TempDir, rule.ArchiveDir, rule.ArchiveInterval/60, rule.SyncInterval/60)
+			nameCommandDic := map[string]string{
+				rule.Name + "_web.cmd":        hd + " -s " + tail,
+				rule.Name + "_manual.cmd":     hd + " -m " + tail,
+				rule.Name + "_web_manual.cmd": hd + " -s -m " + tail,
+			}
+			for name, context := range nameCommandDic {
+				err = os.WriteFile(name, []byte(context+"\npause"), 0755)
+				if err != nil {
+					goto errorLog
+				}
+			}
 		}
-		if selectIndex := tools.CommandMenu(true, configStr...); selectIndex != -1 {
-			r.BackupArchive = rules[selectIndex]
-		} else {
-			goto errorLog
-		}
-		fmt.Println("当前规则为：\n", r.BackupArchive)
 	} else {
 		goto errorLog
 	}
