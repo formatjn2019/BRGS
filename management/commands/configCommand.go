@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"runtime"
 	"strconv"
 	"strings"
 )
@@ -58,13 +59,30 @@ func (r *ReadConfigCommand) Execute() bool {
 		}
 		//生成命令
 		for _, rule := range rules {
-			hd := `.\BRGS.exe `
+			file := os.Args[0]
+			sub := ""
+			pretreatment := ""
+
+			switch current_os := runtime.GOOS; current_os {
+			case "darwin":
+				//mac
+			case "linux":
+				//linux
+				sub = ".sh"
+			case "windows":
+				//windows
+				pretreatment = "chcp 65001\n\n"
+				sub = ".cmd"
+			default:
+				fmt.Println("Running on", current_os)
+			}
 			tail := fmt.Sprintf(`-n %s -wd %s -td %s -ad %s -ai %d -si %d`, rule.Name, rule.WatchDir, rule.TempDir, rule.ArchiveDir, rule.ArchiveInterval/60, rule.SyncInterval/60)
 			nameCommandDic := map[string]string{
-				rule.Name + "_web.cmd":        hd + " -s " + tail,
-				rule.Name + "_manual.cmd":     hd + " -m " + tail,
-				rule.Name + "_web_manual.cmd": hd + " -s -m " + tail,
+				rule.Name + "_web" + sub:        pretreatment + file + " -s " + tail,
+				rule.Name + "_manual" + sub:     pretreatment + file + " -m " + tail,
+				rule.Name + "_web_manual" + sub: pretreatment + file + " -s -m " + tail,
 			}
+
 			for name, context := range nameCommandDic {
 				err = os.WriteFile(name, []byte(context+"\npause"), 0755)
 				if err != nil {
