@@ -36,9 +36,9 @@ func init() {
 }
 
 func showFlags() {
-	fmt.Println(serverFlag)
-	fmt.Println(manualFlag)
-	fmt.Println(rule)
+	fmt.Println("serverFlag: ", serverFlag)
+	fmt.Println("manualFlag: ", manualFlag)
+	fmt.Println("rule: ", rule)
 }
 
 //go:embed web

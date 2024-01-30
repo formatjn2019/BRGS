@@ -20,7 +20,7 @@ import (
 
 // 大于指定大小分片哈希
 // 20M
-const maxSilceSize = 20 * 1024 * 1024
+const maxSilceSize = 10 * 1024 * 1024
 
 // SyncFile 文件同步
 func SyncFile(pathSource, pathTarget string, addDic, delDic map[string]bool) (synced map[string]bool, err error) {
