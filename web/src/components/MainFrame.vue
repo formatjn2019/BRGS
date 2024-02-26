@@ -5,6 +5,7 @@ import Log from "./Log.vue";
 import {onMounted, ref} from "vue";
 import {getUrl} from "../global.js";
 import axios from "axios";
+import QR from "./QR.vue";
 
 const info = ref("未初始化")
 const state = ref(0)
@@ -72,6 +73,7 @@ window.addEventListener('beforeunload', function () {
 </script>
 
 <template>
+  <QR/>
   {{ info }}
   <div>
     <div>

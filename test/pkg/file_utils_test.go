@@ -34,7 +34,7 @@ func TestWrite(t *testing.T) {
 }
 
 func TestWriteUid(t *testing.T) {
-	pathUidDic, _ := tools.CalculateAllUid("D:\\testDir")
+	pathUidDic, _ := tools.CalculateAllUid("D:\\testDir", true)
 	itemList := make([]map[string]string, 0, len(pathUidDic))
 	for path, uid := range pathUidDic {
 		itemList = append(itemList, map[string]string{"path": path, "uid": uid})
@@ -263,7 +263,7 @@ func TestCompareFileCopy(t *testing.T) {
 
 func TestCalculateAllFile(t *testing.T) {
 	path := `D:\testf`
-	pathUidDic, err := tools.CalculateAllUid(path)
+	pathUidDic, err := tools.CalculateAllUid(path, false)
 	fmt.Println(pathUidDic)
 	fmt.Println(err)
 	result, err := tools.CheckUid(pathUidDic)

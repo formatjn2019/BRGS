@@ -57,34 +57,40 @@ func (r *ReadConfigCommand) Execute() bool {
 			names[rule.Name] = true
 			rules = append(rules, rule)
 		}
-		//生成命令
+		// 生成命令
 		for _, rule := range rules {
 			file := os.Args[0]
-			sub := ""
+			suffix := ""
 			pretreatment := ""
-
-			switch current_os := runtime.GOOS; current_os {
+			pauseContext := ""
+			startWeb := ""
+			url := fmt.Sprintf("http://%s:%s", utils.GotLocalIP(), conf.ServerConf.WebPort)
+			switch currentOs := runtime.GOOS; currentOs {
 			case "darwin":
 				//mac
+				// 待定输出
 			case "linux":
 				//linux
-				sub = ".sh"
+				suffix = ".sh"
+				pauseContext = "\n read"
 			case "windows":
 				//windows
 				pretreatment = "chcp 65001\n\n"
-				sub = ".cmd"
+				suffix = ".cmd"
+				startWeb = "start " + url
+				pauseContext = "\n pause"
 			default:
-				fmt.Println("Running on", current_os)
+				fmt.Println("Running on", currentOs)
 			}
 			tail := fmt.Sprintf(`-n %s -wd %s -td %s -ad %s -ai %d -si %d`, rule.Name, rule.WatchDir, rule.TempDir, rule.ArchiveDir, rule.ArchiveInterval/60, rule.SyncInterval/60)
 			nameCommandDic := map[string]string{
-				rule.Name + "_web" + sub:        pretreatment + file + " -s " + tail,
-				rule.Name + "_manual" + sub:     pretreatment + file + " -m " + tail,
-				rule.Name + "_web_manual" + sub: pretreatment + file + " -s -m " + tail,
+				rule.Name + "_web" + suffix:        pretreatment + file + " -s " + tail,
+				rule.Name + "_manual" + suffix:     pretreatment + file + " -m " + tail,
+				rule.Name + "_web_manual" + suffix: pretreatment + file + " -s -m " + tail,
 			}
 
 			for name, context := range nameCommandDic {
-				err = os.WriteFile(name, []byte(context+"\npause"), 0755)
+				err = os.WriteFile(name, []byte(startWeb+"\n"+context+"\n"+pauseContext), 0755)
 				if err != nil {
 					goto errorLog
 				}
