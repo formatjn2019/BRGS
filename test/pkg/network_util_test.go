@@ -6,5 +6,5 @@ import (
 )
 
 func TestGetIp(t *testing.T) {
-	utils.GotLocalIP()
+	println(utils.GotLocalIP())
 }

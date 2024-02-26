@@ -84,13 +84,13 @@ func (r *ReadConfigCommand) Execute() bool {
 			}
 			tail := fmt.Sprintf(`-n %s -wd %s -td %s -ad %s -ai %d -si %d`, rule.Name, rule.WatchDir, rule.TempDir, rule.ArchiveDir, rule.ArchiveInterval/60, rule.SyncInterval/60)
 			nameCommandDic := map[string]string{
-				rule.Name + "_web" + suffix:        pretreatment + file + " -s " + tail,
 				rule.Name + "_manual" + suffix:     pretreatment + file + " -m " + tail,
-				rule.Name + "_web_manual" + suffix: pretreatment + file + " -s -m " + tail,
+				rule.Name + "_web" + suffix:        startWeb + "\n" + pretreatment + file + " -s " + tail,
+				rule.Name + "_web_manual" + suffix: startWeb + "\n" + pretreatment + file + " -s -m " + tail,
 			}
 
 			for name, context := range nameCommandDic {
-				err = os.WriteFile(name, []byte(startWeb+"\n"+context+"\n"+pauseContext), 0755)
+				err = os.WriteFile(name, []byte(context+"\n"+pauseContext), 0755)
 				if err != nil {
 					goto errorLog
 				}
