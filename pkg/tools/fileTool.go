@@ -3,8 +3,7 @@ package tools
 import (
 	"BRGS/pkg/e"
 	"BRGS/pkg/utils"
-	"crypto/md5"
-	"crypto/sha1"
+	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"io"
@@ -360,8 +359,8 @@ func calculateSmallFileUid(filePath string) (uid string, err error) {
 	if err != nil {
 		return "", err
 	}
-	md5Sum, sha1Sum := md5.Sum(context), sha1.Sum(context)
-	return hex.EncodeToString(append(md5Sum[:], sha1Sum[:]...)), nil
+	s := sha256.Sum256(context)
+	return hex.EncodeToString(s[:]), nil
 }
 
 // 计算大文件Uid
@@ -377,10 +376,10 @@ func calculateLargeFileUid(filePath string) (uid string, e error) {
 			e = err
 		}
 	}(file)
-	md5Hash, sha1Hash := md5.New(), sha1.New()
-	_, _ = io.Copy(md5Hash, file)
-	_, _ = io.Copy(sha1Hash, file)
-	return hex.EncodeToString(append(md5Hash.Sum(nil)[:], sha1Hash.Sum(nil)[:]...)), e
+
+	sha256Hash := sha256.New()
+	_, _ = io.Copy(sha256Hash, file)
+	return hex.EncodeToString(sha256Hash.Sum(nil)), e
 }
 
 func createParentDir(path string) {
